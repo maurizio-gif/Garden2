@@ -1930,10 +1930,16 @@ try {
     Write-Log "Watermark di partenza: source_iscrizione_id > $lastId"
 
     $totaleRighe = 0
+    # Il watermark di partenza e' MAX(source_iscrizione_id) su Supabase: se il refresh
+    # delle vendite aperte (qui sotto) scrivesse vendite recenti prima che lo storico
+    # sia tutto dentro, il watermark salterebbe in avanti e le vendite in mezzo non
+    # entrerebbero piu'. Il refresh gira solo a storico completato.
+    $venditeAlPasso = $false
     for ($batch = 1; $batch -le $maxBatches; $batch++) {
         $righe = Get-RigheDaSincronizzare -LastId $lastId -Top $batchSize
         if ($righe.Count -eq 0) {
             Write-Log "Nessuna nuova riga: sincronizzazione al passo con la sorgente."
+            $venditeAlPasso = $true
             break
         }
 
@@ -1947,6 +1953,7 @@ try {
 
         if ($righe.Count -lt $batchSize) {
             Write-Log "Ultimo batch piu' corto della dimensione richiesta: sincronizzazione al passo."
+            $venditeAlPasso = $true
             break
         }
     }
@@ -1967,6 +1974,9 @@ try {
     # $batchesRefreshApertiPerGiro blocchi e salva il cursore dopo ciascuno
     # (Set-RefreshApertiInCorso). Se ce n'e' uno in corso si prosegue quello,
     # senza guardare la soglia di ore.
+    if (-not $venditeAlPasso) {
+        Write-Log "Vendite: storico ancora in corso, salto il refresh delle vendite aperte di questo giro."
+    } else {
     $refreshInCorso = Get-RefreshApertiInCorso
 
     if (-not $refreshInCorso) {
@@ -2024,6 +2034,8 @@ try {
         } else {
             Write-Log "Refresh vendite aperte: $totaleRigheAperte righe in questa esecuzione, prosegue al prossimo giro da IDIscrizione > $lastIdAperti."
         }
+    }
+
     }
 
     Sync-Transazioni
