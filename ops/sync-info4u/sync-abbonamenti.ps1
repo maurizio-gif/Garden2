@@ -272,6 +272,35 @@ function Invoke-SupabaseScrittura {
     }
 }
 
+# Il corpo JSON di una persona a partire da una riga di dbgym: lo usano sia
+# l'upsert riga per riga sia quello in blocco.
+function New-CorpoPersona {
+    param($Riga)
+
+    return @{
+        source_utente_id    = [int]$Riga.IDUtente
+        nome                = Get-TestoPulito $Riga.Nome
+        cognome             = Get-TestoPulito $Riga.Cognome
+        email               = Get-TestoPulito $Riga.Email
+        cellulare           = Get-TestoPulito $Riga.Cellulare
+        telefono_1          = Get-TestoPulito $Riga.Telefono_1
+        telefono_2          = Get-TestoPulito $Riga.Telefono_2
+        codice_fiscale      = Get-TestoPulito $Riga.CodiceFiscale
+        data_nascita        = Get-DataPulita $Riga.Data_Nascita
+        luogo_nascita       = Get-TestoPulito $Riga.Luogo_Nascita
+        provincia_nascita   = Get-TestoPulito $Riga.Provincia_Nascita
+        stato_nascita       = Get-TestoPulito $Riga.Stato_Nascita
+        sesso               = Get-TestoPulito $Riga.Sesso
+        indirizzo_via       = Get-TestoPulito $Riga.Indirizzo_Via
+        indirizzo_civico    = Get-TestoPulito $Riga.Indirizzo_NumeroCivico
+        indirizzo_cap       = Get-TestoPulito $Riga.Indirizzo_CAP
+        indirizzo_citta     = Get-TestoPulito $Riga.Indirizzo_Citta
+        indirizzo_provincia = Get-TestoPulito $Riga.Indirizzo_PV
+        indirizzo_stato     = Get-TestoPulito $Riga.Indirizzo_Stato
+        fonte               = "info4u"
+    }
+}
+
 # Upsert di UNA persona. Riga per riga e non in blocco: la deduplicazione
 # (passo 2 sotto) e' una lettura seguita da una scrittura, e non si puo'
 # comporre in un batch senza rischiare due IDUtente nuovi con lo stesso nome,
@@ -323,28 +352,7 @@ function Send-PersonaUpsert {
     # JSON (l'ordine delle chiavi non conta per Supabase) e più sotto viene
     # clonato con .Clone() — metodo che su un OrderedDictionary PowerShell
     # non riesce a richiamare ("non contiene un metodo denominato 'Clone'").
-    $corpoPersona = @{
-        source_utente_id    = [int]$Riga.IDUtente
-        nome                = Get-TestoPulito $Riga.Nome
-        cognome             = Get-TestoPulito $Riga.Cognome
-        email               = Get-TestoPulito $Riga.Email
-        cellulare           = Get-TestoPulito $Riga.Cellulare
-        telefono_1          = Get-TestoPulito $Riga.Telefono_1
-        telefono_2          = Get-TestoPulito $Riga.Telefono_2
-        codice_fiscale      = Get-TestoPulito $Riga.CodiceFiscale
-        data_nascita        = Get-DataPulita $Riga.Data_Nascita
-        luogo_nascita       = Get-TestoPulito $Riga.Luogo_Nascita
-        provincia_nascita   = Get-TestoPulito $Riga.Provincia_Nascita
-        stato_nascita       = Get-TestoPulito $Riga.Stato_Nascita
-        sesso               = Get-TestoPulito $Riga.Sesso
-        indirizzo_via       = Get-TestoPulito $Riga.Indirizzo_Via
-        indirizzo_civico    = Get-TestoPulito $Riga.Indirizzo_NumeroCivico
-        indirizzo_cap       = Get-TestoPulito $Riga.Indirizzo_CAP
-        indirizzo_citta     = Get-TestoPulito $Riga.Indirizzo_Citta
-        indirizzo_provincia = Get-TestoPulito $Riga.Indirizzo_PV
-        indirizzo_stato     = Get-TestoPulito $Riga.Indirizzo_Stato
-        fonte               = "info4u"
-    }
+    $corpoPersona = New-CorpoPersona $Riga
 
     # Passo 1: questo IDUtente ha gia' una sua riga? In tal caso si aggiorna
     # solo quella — mai un inserimento nuovo per un IDUtente gia' noto, che
@@ -456,17 +464,42 @@ function Send-PersonaUpsert {
     return $rispostaSeparata[0].id
 }
 
-# Upsert delle persone di un batch, deduplicate per IDUtente: la stessa
-# persona puo' comparire piu' volte in un batch di vendite (piu' acquisti,
-# stesso utente), e non ha senso interrogare due volte la stessa riga.
+# Upsert delle persone di un batch, in blocco. A Garden l'unica fonte di
+# anagrafica e' Info4U e la chiave e' source_utente_id: non serve la ricerca
+# per nome e cellulare di Ronchiverdi (Send-PersonaUpsert, una chiamata o piu'
+# per persona), basta un upsert su source_utente_id, a blocchi di 500. La
+# stessa persona puo' comparire piu' volte nel batch di vendite: si scrive una
+# volta sola. cellulare_norm, email minuscola e aggiornato_il li sistema il
+# trigger persone_prima_di_scrivere; il legame persona_id delle altre tabelle
+# i trigger *_imposta_persona e persone_collega_info4u.
 function Send-PersoneUpsert {
     param([array]$Righe)
 
     $mappa = @{}
+    $corpi = @{}
     foreach ($r in $Righe) {
         $idUtente = [int]$r.IDUtente
         if ($mappa.ContainsKey($idUtente)) { continue }
-        $mappa[$idUtente] = Send-PersonaUpsert -Riga $r
+        $corpo = New-CorpoPersona $r
+        if (-not $corpo.nome) {
+            Write-Log "IDUtente ${idUtente}: nome mancante, salto l'anagrafica per questa vendita." "WARN"
+            $mappa[$idUtente] = $null
+            continue
+        }
+        $mappa[$idUtente] = $null
+        $corpi[$idUtente] = $corpo
+    }
+
+    $idUtenti = @($corpi.Keys)
+    $headers = $supabaseHeaders.Clone()
+    $headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+    $url = "$($config.Supabase.Url)/rest/v1/persone?on_conflict=source_utente_id&select=id,source_utente_id"
+    for ($i = 0; $i -lt $idUtenti.Count; $i += 500) {
+        $fine = [math]::Min($i + 499, $idUtenti.Count - 1)
+        $blocco = @(foreach ($id in $idUtenti[$i..$fine]) { $corpi[$id] })
+        $corpoJson = ConvertTo-Json -InputObject $blocco -Depth 5
+        $risposta = Invoke-SupabaseScrittura -Uri $url -Headers $headers -Method Post -Corpo $corpoJson
+        foreach ($p in @($risposta)) { $mappa[[int]$p.source_utente_id] = $p.id }
     }
     return $mappa
 }
