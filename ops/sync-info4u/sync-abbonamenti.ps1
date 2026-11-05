@@ -165,7 +165,12 @@ $supabaseHeaders = @{
 
 # ────────────────────────────────────────────────────── connessione SQL
 
-$connectionString = "Server=$($config.SqlServer.Server),$($config.SqlServer.Port);Database=$($config.SqlServer.Database);User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);TrustServerCertificate=True;"
+# Senza Port in config, Server puo' essere un'istanza con nome (es.
+# localhost\SQLEXPRESS). Senza User si usa l'account Windows con cui gira lo
+# script (Integrated Security): niente utente SQL da creare.
+$sqlServerNome = if ($config.SqlServer.Port) { "$($config.SqlServer.Server),$($config.SqlServer.Port)" } else { [string]$config.SqlServer.Server }
+$sqlAutenticazione = if ($config.SqlServer.User) { "User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);" } else { "Integrated Security=SSPI;" }
+$connectionString = "Server=$sqlServerNome;Database=$($config.SqlServer.Database);${sqlAutenticazione}TrustServerCertificate=True;"
 
 # ──────────────────────────────────────────────────────────── watermark
 
@@ -508,7 +513,8 @@ function Send-AbbonamentiUpsert {
             convertito               = Get-BoolPulito $r.Convertito
             rinnovo_automatico       = Get-BoolPulito $r.RinnovoAutomatico
             data_disdetta            = Get-DataPulita $r.DataDisdetta
-            motivo_disdetta          = Get-TestoPulito $r.MotivoDisdetta
+            # Testi liberi degli operatori (possibili dati di salute): a Garden non si copiano.
+            motivo_disdetta          = $null
             sconto_id                = if ($r.IDSconto -is [System.DBNull]) { $null } else { [int]$r.IDSconto }
             sconto_durata_id         = if ($r.IDScontoDurata -is [System.DBNull]) { $null } else { [int]$r.IDScontoDurata }
             gg_omaggio               = if ($r.GGOmaggio -is [System.DBNull]) { $null } else { [int]$r.GGOmaggio }
@@ -516,7 +522,7 @@ function Send-AbbonamentiUpsert {
             gg_sospensione           = if ($r.GGsospensione -is [System.DBNull]) { $null } else { [int]$r.GGsospensione }
             data_inizio_sospensione  = Get-DataPulita $r.DataInizioSospensione
             data_fine_sospensione    = Get-DataPulita $r.DataFineSospensione
-            note                     = Get-TestoPulito $r.Note
+            note                     = $null
             # Qualunque riga arrivi qui e' stata appena letta da una query
             # live su Info4U: per definizione esiste ancora la', quindi ogni
             # upsert normale azzera un'eventuale cancellato_il messo da un
@@ -1497,20 +1503,20 @@ $defsExtra = @(
     # dal 2023. Un watermark sull'ID non basterebbe (le pratiche vecchie hanno
     # ID bassi): si riscrivono tutte, a blocchi, come le tabelle di decodifica.
     @{ Nome = "crm_pratiche"; Tabella = "crm_pratiche"; Modo = "Anagrafica"; ChiaveCol = "source_pratica_id"
-       Select = "c.IDAppuntamentoCategoriaUtente AS source_pratica_id, c.IDAppuntamentoCategoria AS source_categoria_id, LEFT(c.Descrizione, 200) AS descrizione, c.IDUtente AS source_utente_id, c.DataCreazione AS data_creazione, c.IDStatoCommerciale AS source_stato_id, c.DataStato AS data_stato, c.DataChiusura AS data_chiusura, c.Valore AS valore"
+       Select = "c.IDAppuntamentoCategoriaUtente AS source_pratica_id, c.IDAppuntamentoCategoria AS source_categoria_id, NULL AS descrizione, c.IDUtente AS source_utente_id, c.DataCreazione AS data_creazione, c.IDStatoCommerciale AS source_stato_id, c.DataStato AS data_stato, c.DataChiusura AS data_chiusura, c.Valore AS valore"
        From = "dbo.AppuntamentiCategorieUtenti c"
        Dal = "(c.DataCreazione >= @Dal OR c.DataStato >= @Dal OR c.DataChiusura >= @Dal OR EXISTS (SELECT 1 FROM dbo.AppuntamentiStorico a WHERE a.IDAppuntamentoCategoriaUtente = c.IDAppuntamentoCategoriaUtente AND a.DataAppuntamento >= @Dal))" },
     # L'azione: info4u non porta l'IDUtente, solo la pratica. Chi l'ha scritta
     # e' IDOperatoreAutore. ~90% sono azioni automatiche (vedi la vista
     # crm_azioni_dettaglio.automatica).
     @{ Nome = "crm_azioni"; Tabella = "crm_azioni"; Modo = "Incrementale"; ChiaveCol = "source_azione_id"; IdSql = "a.IDAppuntamento"
-       Select = "a.IDAppuntamento AS source_azione_id, a.IDAppuntamentoCategoriaUtente AS source_pratica_id, a.IDOperatoreAutore AS operatore_autore_id, a.IDOperatoreDest AS operatore_dest_id, a.DataAppuntamento AS data_appuntamento, a.Tipo AS source_tipo_id, a.Esito AS source_esito_id, LEFT(a.Descrizione, 500) AS descrizione, a.DataEvasione AS data_evasione, a.IDStatoCommerciale AS source_stato_id, a.DataPresaInCarico AS data_presa_in_carico"
+       Select = "a.IDAppuntamento AS source_azione_id, a.IDAppuntamentoCategoriaUtente AS source_pratica_id, a.IDOperatoreAutore AS operatore_autore_id, a.IDOperatoreDest AS operatore_dest_id, a.DataAppuntamento AS data_appuntamento, a.Tipo AS source_tipo_id, a.Esito AS source_esito_id, NULL AS descrizione, a.DataEvasione AS data_evasione, a.IDStatoCommerciale AS source_stato_id, a.DataPresaInCarico AS data_presa_in_carico"
        From = "dbo.AppuntamentiStorico a"
        Dal = "a.DataAppuntamento >= @Dal"
        RefreshWhere = "a.DataAppuntamento >= @Soglia OR a.DataEvasione >= @Soglia OR a.DataPresaInCarico >= @Soglia" },
     # Pochi memo (~300): si riscrivono tutti.
     @{ Nome = "crm_memo"; Tabella = "crm_memo"; Modo = "Anagrafica"; ChiaveCol = "source_memo_id"
-       Select = "m.IDMemo AS source_memo_id, m.IDUtente AS source_utente_id, m.IDOperatore AS operatore_id, m.Oggetto AS oggetto, LEFT(m.Descrizione, 2000) AS descrizione, m.UltimaModifica AS ultima_modifica, m.DataOperazione AS data_operazione"
+       Select = "m.IDMemo AS source_memo_id, m.IDUtente AS source_utente_id, m.IDOperatore AS operatore_id, NULL AS oggetto, NULL AS descrizione, m.UltimaModifica AS ultima_modifica, m.DataOperazione AS data_operazione"
        From = "dbo.Memo m"
        Dal = "m.DataOperazione >= @Dal" },
 
@@ -1552,6 +1558,17 @@ $defsExtra = @(
        From = "dbo.IscrizioniOmaggioGenerali o"
        Dal = "(o.DataInizio >= @Dal OR o.DataFine >= @Dal)"
        RefreshWhere = "o.DataFine >= @Soglia OR o.DataInizio >= @Soglia" },
+    # Sospensioni delle vendite (a Garden vive: ~2.300 l'anno). Una sospensione
+    # si corregge o si accorcia dopo l'inserimento, quindi il refresh rilegge
+    # quelle recenti o in corso. Si copia solo la causale codificata
+    # (SospensioniCausali): il testo libero AbbonamentiSospensioni.Causale puo'
+    # contenere dati di salute e non si porta. Non c'e' operatore ne' data di
+    # inserimento in dbo.AbbonamentiSospensioni.
+    @{ Nome = "abbonamenti_sospensioni"; Tabella = "abbonamenti_sospensioni"; Modo = "Incrementale"; ChiaveCol = "source_sospensione_id"; IdSql = "s.IDAbbonamentoSospensioni"
+       Select = "s.IDAbbonamentoSospensioni AS source_sospensione_id, s.IDIscrizione AS source_iscrizione_id, CONVERT(char(10), s.DataInizio, 23) AS data_inizio, CONVERT(char(10), s.DataFine, 23) AS data_fine, s.GGNetti AS giorni_netti, s.IDSospensioneCausale AS source_causale_id, sc.Descrizione AS causale_descrizione"
+       From = "dbo.AbbonamentiSospensioni s LEFT JOIN dbo.SospensioniCausali sc ON sc.IDSospensioneCausale = s.IDSospensioneCausale"
+       Dal = "(s.DataInizio >= @Dal OR s.DataFine >= @Dal)"
+       RefreshWhere = "s.DataFine >= @Soglia OR s.DataInizio >= @Soglia" },
 
     # ────────────────────────────────────────────────────────── ricevute
     # Senza Cliente, indirizzi, partita IVA, codice fiscale, note e codice lotteria.

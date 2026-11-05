@@ -22,6 +22,15 @@ server, schedulazione ogni 5 minuti, log) vale la guida di Ronchiverdi:
   vendite, cassa, rate, modifiche e tabelle extra. Le vendite entrano se
   fatte da quella data **o** ancora valide da quella data, così un annuale
   venduto a dicembre 2015 non manca.
+- **Testi liberi esclusi**: note e motivo di disdetta delle vendite, descrizioni
+  di pratiche e azioni CRM, oggetto e testo dei memo, causale libera delle
+  sospensioni. Possono contenere dati di salute e restano su Info4U.
+- **Sospensioni**: tabella extra `abbonamenti_sospensioni` (con la sola causale
+  codificata di `SospensioniCausali`); si lancia da sola con
+  `-SoloExtra abbonamenti_sospensioni`.
+- **Accesso a SQL Server**: senza `User` in `config.json` lo script usa
+  l'account Windows con cui gira (Integrated Security) e `Server` puo' essere
+  un'istanza con nome, per esempio `localhost\\SQLEXPRESS`, senza `Port`.
 - **Date in SQL Server**: il server è in italiano, le date si scrivono
   `'20160101'`, mai `'2016-01-01'` (vedi `mappa-dbgym.md`).
 
@@ -35,6 +44,6 @@ e service role key del progetto Garden. **Non committare `config.json`.**
 - Le tabelle di report di Ronchiverdi (`abbonamenti_gruppi`,
   `abbonamenti_mappatura`, `abbonamenti_macro_settori`, obiettivi) non sono
   state portate: servono quando si costruisce il pannello di Garden.
-- Sospensioni, `Accessi` e le altre tabelle «extra» di Garden hanno volumi
-  doppi rispetto a Ronchiverdi (6,5 milioni di accessi in tutto): il primo
-  carico richiede più giri.
+- `Accessi` e le altre tabelle «extra» di Garden hanno volumi doppi rispetto
+  a Ronchiverdi (6,5 milioni di accessi in tutto): il primo carico richiede
+  più giri.
