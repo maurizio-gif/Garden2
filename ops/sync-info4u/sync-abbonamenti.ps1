@@ -1491,8 +1491,9 @@ $Alias.IDAutomazione AS source_automazione_id
 
 $defsExtra = @(
     # ──────────────────────────────────── persone senza acquisti
-    # Gli utenti Info4U che non hanno mai comprato (lead, walk-in, prove): le
-    # vendite creano le persone, questi no. Si importano con la stessa logica
+    # Gli utenti Info4U senza vendite nella finestra dello storico (lead,
+    # walk-in, prove, ma anche soci che hanno comprato solo prima di
+    # TransazioniDal): le vendite creano le persone, questi no. Si importano con la stessa logica
     # di deduplicazione delle vendite (Send-PersoneUpsert). Cursore su IDUtente
     # nella riga persone_senza_acquisti di sync_info4u_stato. 250 persone per
     # blocco: ognuna costa quattro chiamate a Supabase.
@@ -1770,10 +1771,11 @@ SELECT TOP ($dimensioneBlocco)
 FROM dbo.Utenti u
 WHERE u.IDUtente > @LastId
   AND LTRIM(RTRIM(ISNULL(u.Nome, ''))) <> ''
-  AND NOT EXISTS (SELECT 1 FROM dbo.AbbonamentiIscrizione ai WHERE ai.IDUtente = u.IDUtente)
+  AND NOT EXISTS (SELECT 1 FROM dbo.AbbonamentiIscrizione ai WHERE ai.IDUtente = u.IDUtente
+                  AND (ai.DataOperazione >= @Dal OR ai.DataFine >= @Dal))
 ORDER BY u.IDUtente ASC
 "@
-        $righe = Invoke-QueryDbgym -CommandText $comandoText -Parametri @{ "@LastId" = $cursore }
+        $righe = Invoke-QueryDbgym -CommandText $comandoText -Parametri @{ "@LastId" = $cursore; "@Dal" = $transazioniDal }
         if ($righe.Count -eq 0) {
             Write-Log "Persone senza acquisti: nessun nuovo utente, al passo con la sorgente."
             break
