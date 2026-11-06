@@ -25,5 +25,24 @@ soci attivi, ultimi 12 mesi). I prodotti si raggruppano con la tabella
 `prodotti_gruppi` (categoria Info4U -> gruppo): una categoria non elencata
 finisce in «Altro». Si corregge con una riga SQL, senza toccare il codice.
 
-**Prima di metterlo online serve il login**: la pagina non ha ancora nessuna
-autenticazione.
+## Accesso
+
+Login con email e password di Supabase Auth, ma solo per chi sta in
+`staff_users` (ruolo `admin` o `lettore`). **Nessuna mail parte da Supabase**:
+dalla pagina Utenti un amministratore abilita una persona e il cruscotto
+genera un link per scegliere la password, da mandare a mano (per esempio su
+WhatsApp). Lo stesso tasto «Nuovo link» serve a chi dimentica la password.
+
+Il link si consuma con il tasto «Continua» e non aprendo la pagina, cosi' le
+anteprime di WhatsApp non lo bruciano. Vale per il tempo impostato in
+Supabase Auth (di solito 1 ora, al massimo 24).
+
+Il primo amministratore (`maurizio@ready2digital.it`) e' gia' in `staff_users`;
+il suo primo link si crea con lo script:
+
+```
+SUPABASE_SERVICE_ROLE_KEY=... node --env-file=.env.local scripts/crea-utente.mjs maurizio@ready2digital.it admin
+```
+
+Il registro (`registro_accessi`) tiene accessi, link generati e modifiche ai
+ruoli, mai le password.

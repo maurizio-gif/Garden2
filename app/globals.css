@@ -310,3 +310,180 @@ body {
 @media (max-width: 520px) {
 	.griglia.quattro, .vendite-recenti { grid-template-columns: 1fr; }
 }
+
+/* barra in alto */
+.barra-utente {
+	border-bottom: 1px solid var(--line);
+	background: var(--bg);
+}
+.barra-interna {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+.marchio {
+	color: var(--ink);
+	font-weight: 600;
+	text-decoration: none;
+	letter-spacing: -0.01em;
+}
+.marchio span {
+	color: var(--verde-vivo);
+}
+.barra-destra {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	font-size: 13px;
+}
+.barra-destra form { margin: 0; }
+.chi {
+	max-width: 22ch;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--ink-soft);
+}
+.link-barra {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--verde);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none;
+	cursor: pointer;
+}
+.link-barra:hover { text-decoration: underline; }
+
+/* accesso */
+.accesso {
+	display: grid;
+	min-height: 100vh;
+	place-items: center;
+	padding: 24px 16px;
+	background: var(--bg-soft);
+}
+.scheda-accesso {
+	display: grid;
+	gap: 14px;
+	width: 100%;
+	max-width: 400px;
+	padding: 28px 26px;
+	border: 1px solid var(--line);
+	border-radius: 18px;
+	background: var(--bg);
+}
+.scheda-accesso h1 {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.15;
+	letter-spacing: -0.02em;
+}
+.scheda-accesso h1 em { font-style: normal; color: var(--verde-vivo); }
+.scheda-accesso .aiuto, .aiuto { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.coppia { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+label {
+	display: grid;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--ink-soft);
+}
+input, select {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--bg);
+	color: var(--ink);
+	font: inherit;
+	font-size: 14px;
+}
+input:focus, select:focus {
+	outline: 2px solid var(--verde-vivo);
+	outline-offset: 1px;
+	border-color: var(--verde-vivo);
+}
+.primario, .secondario {
+	padding: 10px 18px;
+	border-radius: 10px;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+}
+.primario {
+	border: 1px solid var(--ink);
+	background: var(--ink);
+	color: #fff;
+}
+.primario:hover { background: #1d4a3a; }
+.secondario {
+	border: 1px solid var(--line);
+	background: var(--bg);
+	color: var(--ink);
+	padding: 7px 14px;
+	font-size: 13px;
+}
+.secondario:hover:not(:disabled) { border-color: var(--verde); }
+.secondario:disabled { opacity: 0.6; cursor: default; }
+.errore {
+	margin: 0;
+	padding: 10px 12px;
+	border-radius: 10px;
+	background: #fbe9e5;
+	color: var(--giu);
+	font-size: 13px;
+}
+
+/* gestione utenti */
+.riga-form {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 12px;
+	margin: 12px 0;
+}
+.form-link { display: grid; gap: 10px; }
+.form-link .secondario { justify-self: start; }
+.link-creato {
+	padding: 12px 14px;
+	border: 1px solid var(--verde-vivo);
+	border-radius: 12px;
+	background: var(--verde-chiaro);
+}
+.link-creato p { margin: 0 0 8px; font-size: 13px; }
+.link-riga { display: flex; gap: 8px; }
+.link-riga input { font-size: 12px; }
+.tabella-utenti { display: grid; gap: 10px; margin-top: 12px; }
+.utente {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+	padding: 14px 16px;
+	border: 1px solid var(--line);
+	border-radius: var(--raggio);
+	background: var(--bg);
+}
+.utente.spento { background: var(--bg-soft); color: var(--ink-faint); }
+.utente-chi { display: grid; gap: 2px; font-size: 13px; }
+.utente-chi b { font-size: 15px; font-weight: 600; }
+.utente-chi span { color: var(--ink-soft); }
+.utente-azioni { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+.utente-azioni form { display: flex; align-items: center; gap: 8px; margin: 0; }
+.utente-azioni select { width: auto; padding: 6px 10px; font-size: 13px; }
+.utente-azioni .form-link { display: flex; flex-wrap: wrap; }
+.utente-azioni .link-creato { flex-basis: 100%; min-width: min(420px, 78vw); }
+
+@media (max-width: 520px) {
+	.riga-form, .coppia { grid-template-columns: 1fr; }
+	.chi { display: none; }
+}
