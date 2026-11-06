@@ -32,5 +32,6 @@ export function Numero({ valore, formato = 'intero', durata = 900 }: { valore: n
 		if (partito.current) setMostrato(valore);
 	}, [valore]);
 
-	return <span className="numero">{formattaPer(formato, Math.round(mostrato))}</span>;
+	const arrotondato = formato === 'percento' ? Math.round(mostrato * 10) / 10 : Math.round(mostrato);
+	return <span className="numero">{formattaPer(formato, arrotondato)}</span>;
 }

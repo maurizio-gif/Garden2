@@ -30,7 +30,21 @@ function scala(max: number): { top: number; passo: number } {
 }
 
 /** Colonne impilate per mese e gruppo. Al passaggio (o al tocco) si apre il riquadro con i numeri di quel mese. */
-export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gruppi: string[]; formato: Formato; unita?: string }) {
+export function Colonne({
+	punti,
+	gruppi,
+	formato,
+	unita,
+	colori,
+}: {
+	punti: Punto[];
+	gruppi: string[];
+	formato: Formato;
+	unita?: string;
+	/** Colori per serie che non ne hanno uno fisso (gli operatori). */
+	colori?: Record<string, string>;
+}) {
+	const colore = (g: string) => colori?.[g] ?? coloreGruppo(g);
 	const [scelta, setScelta] = useState<number | null>(null);
 	if (punti.length === 0) return <p className="nota">Nessun dato per questo periodo.</p>;
 
@@ -48,7 +62,7 @@ export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gru
 				<div className="colonne-asse" aria-hidden>
 					{tacche.map((v) => (
 						<span key={v} style={{ bottom: pct(v) }}>
-							{formattaPer(formato === 'intero' ? 'intero' : 'euroBreve', v)}
+							{formattaPer(formato === 'intero' || formato === 'percento' ? 'intero' : 'euroBreve', v)}
 						</span>
 					))}
 				</div>
@@ -74,7 +88,7 @@ export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gru
 									{p.parti
 										.filter((x) => x.valore > 0)
 										.map((x) => (
-											<span key={x.gruppo} className="pezzo" style={{ flexGrow: x.valore, background: coloreGruppo(x.gruppo) }} />
+											<span key={x.gruppo} className="pezzo" style={{ flexGrow: x.valore, background: colore(x.gruppo) }} />
 										))}
 								</span>
 								{p.confronto && <span className="colonna-prima" style={{ bottom: pct(p.confronto.valore) }} aria-hidden />}
@@ -90,7 +104,7 @@ export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gru
 											.sort((a, b) => b.valore - a.valore)
 											.map((x) => (
 												<span key={x.gruppo} className="riquadro-riga">
-													<i style={{ background: coloreGruppo(x.gruppo) }} />
+													<i style={{ background: colore(x.gruppo) }} />
 													{x.gruppo}
 													<em>{formattaPer(formato, x.valore)}</em>
 												</span>
@@ -117,7 +131,7 @@ export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gru
 			<div className="legenda">
 				{usati.map((g) => (
 					<span key={g}>
-						<i style={{ background: coloreGruppo(g) }} />
+						<i style={{ background: colore(g) }} />
 						{g}
 					</span>
 				))}
@@ -126,7 +140,7 @@ export function Colonne({ punti, gruppi, formato, unita }: { punti: Punto[]; gru
 						<i className="trattino" /> anno scorso
 					</span>
 				)}
-				<span>Colonna tratteggiata: mese in corso</span>
+				{punti.some((p) => p.inCorso) && <span>Colonna tratteggiata: mese in corso</span>}
 			</div>
 		</>
 	);

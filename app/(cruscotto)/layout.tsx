@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { esci } from '@/app/login/actions';
+import { NavSezioni } from '@/components/NavSezioni';
 import { utenteCorrente } from '@/lib/auth/staff';
 
 export default async function LayoutCruscotto({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default async function LayoutCruscotto({ children }: { children: React.Re
 					</div>
 				</div>
 			</div>
+			<NavSezioni />
 			{children}
 		</>
 	);

@@ -28,6 +28,28 @@ mezzanotte o con una combinazione di gruppi mai calcolata la ricalcola da solo. 
 `prodotti_gruppi` (categoria Info4U -> gruppo): una categoria non elencata
 finisce in «Altro». Si corregge con una riga SQL, senza toccare il codice.
 
+## Le altre sezioni
+
+Abbonamenti, Incassato, Vendite, Accessi, Soci e Operatori seguono lo stesso
+schema della Direzione: una funzione `sez_<nome>(oggi, gruppi)` calcola un json
+e `cruscotto_leggi(sezione, gruppi)` lo tiene in `cruscotto_cache`, che pg_cron
+rinfresca ogni mezz'ora (gli accessi, che leggono milioni di righe, ogni ora).
+Solo Abbonamenti e Vendite hanno il filtro per gruppo di prodotto.
+
+Definizioni da conoscere (sono scelte, si cambiano nelle funzioni):
+
+- **Rinnovo**: la persona aveva lo stesso gruppo di abbonamento finito da meno
+  di 30 giorni; **ritorno** se era fermo da piu' tempo; **nuovo** se non ne aveva.
+  Le quote associative non contano.
+- **Sconto**: uno sconto applicato (`sconto_id`) su un prodotto non-corso. Nei
+  corsi il listino e' il prezzo dell'intero corso e il totale la quota della
+  lezione, quindi non e' uno sconto.
+- **Disdette**: non ci sono, il gestionale di Garden non le registra; la sezione
+  Vendite mostra le sospensioni.
+- **Accessi**: ingressi consentiti (`tipo_accesso >= 2`). Il riferimento e'
+  l'ultimo giorno caricato, finche' lo storico non e' completo.
+- **Soci**: solo aggregati (eta', sesso, zona), mai nomi o recapiti.
+
 ## Accesso
 
 Login con email e password di Supabase Auth, ma solo per chi sta in

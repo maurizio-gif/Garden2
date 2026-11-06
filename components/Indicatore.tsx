@@ -13,16 +13,22 @@ export function Indicatore({
 	formato,
 	serie,
 	colore,
+	nota,
+	inverso,
 	ritardo = 0,
 }: {
 	titolo: string;
 	periodo: string;
 	ora: number;
-	prima: number;
-	annoPrima: string;
+	prima?: number;
+	/** Come si chiama il termine di confronto (es. «2025»); senza, non c'e' confronto. */
+	annoPrima?: string;
 	formato: Formato;
-	serie: number[];
+	serie?: number[];
 	colore: string;
+	nota?: string;
+	/** Salire e' un male (sconti, sospensioni). */
+	inverso?: boolean;
 	ritardo?: number;
 }) {
 	return (
@@ -35,13 +41,17 @@ export function Indicatore({
 				<Numero valore={ora} formato={formato} />
 			</div>
 			<div className="piccolo">{periodo}</div>
-			<Sparkline serie={serie} colore={colore} />
-			<div className="confronto">
-				<span>
-					{annoPrima} · <b>{formattaPer(formato, prima)}</b>
-				</span>
-				<Variazione ora={ora} prima={prima} />
-			</div>
+			{serie && <Sparkline serie={serie} colore={colore} />}
+			{prima !== undefined && annoPrima ? (
+				<div className="confronto">
+					<span>
+						{annoPrima} · <b>{formattaPer(formato, prima)}</b>
+					</span>
+					<Variazione ora={ora} prima={prima} inverso={inverso} />
+				</div>
+			) : (
+				nota && <div className="confronto solo-nota">{nota}</div>
+			)}
 		</div>
 	);
 }

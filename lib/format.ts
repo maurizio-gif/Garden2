@@ -33,11 +33,12 @@ const giornoBreve = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 's
 export const formatOrario = (iso: string) => orario.format(new Date(iso));
 export const formatGiornoBreve = (iso: string) => giornoBreve.format(new Date(iso));
 
-export type Formato = 'intero' | 'euro' | 'euroBreve';
+export type Formato = 'intero' | 'euro' | 'euroBreve' | 'percento';
 
 /** Il formato si passa per nome ai componenti client: una funzione non attraversa il confine con il server. */
 export function formattaPer(formato: Formato, n: number): string {
 	if (formato === 'euro') return formatEuro(n);
+	if (formato === 'percento') return `${new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)}%`;
 	if (formato === 'euroBreve') {
 		if (Math.abs(n) >= 1_000_000) return `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 }).format(n / 1_000_000)} M€`;
 		return Math.abs(n) >= 1000 ? `${formatIntero(n / 1000)}k €` : `${formatIntero(n)} €`;
@@ -55,9 +56,9 @@ const giornoSettimana = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day:
 export const formatGiornoLungo = (d: Date) => giornoSettimana.format(d);
 
 /** «ROSSI» -> «Rossi», «de luca» -> «De Luca», «D'ANGELO» -> «D'Angelo». */
-const maiuscole = (t: string) => t.toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (_, sep: string, l: string) => sep + l.toUpperCase());
+export const capitalizza = (t: string) => t.toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (_, sep: string, l: string) => sep + l.toUpperCase());
 
 export function nominativo(nome: string | null, cognome: string | null): string {
 	const intero = [nome, cognome].map((x) => (x ?? '').trim()).filter(Boolean).join(' ');
-	return intero ? maiuscole(intero) : 'Cliente non collegato';
+	return intero ? capitalizza(intero) : 'Cliente non collegato';
 }

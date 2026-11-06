@@ -7,7 +7,30 @@ const COLORI: Record<string, string> = {
 	'Personal training': '#7c5cff',
 	'Quote e tessere': '#c9d1cc',
 	'Altro': '#aab4af',
+	// Abbonamenti: tipo di vendita e rinnovo
+	'Nuovi': '#0f9d6b',
+	'Rinnovi': '#1ba8e0',
+	'Ritorni': '#f2a516',
+	'Rinnovati': '#0f9d6b',
+	'Non rinnovati': '#ff7a59',
+	'Da rinnovare': '#ff7a59',
+	// Incassato: metodo di pagamento e servizio
+	'Contanti': '#f2a516',
+	'Carte e bancomat': '#1ba8e0',
+	'RID e bonifici': '#0f9d6b',
+	'Assegni': '#7c5cff',
+	'Abbonamenti': '#0f9d6b',
+	'Campi e prenotazioni': '#1ba8e0',
+	'Shop': '#ff7a59',
+	'Bar e borsellino': '#7c5cff',
+	// serie singole
+	'Accessi': '#1ba8e0',
+	'Sospensioni': '#7c5cff',
+	'Nuovi iscritti': '#0f9d6b',
+	'Soci': '#0f9d6b',
 };
+/** Colori per serie senza un colore fisso (gli operatori): si assegnano in ordine. */
+export const PALETTE = ['#0f9d6b', '#1ba8e0', '#f2a516', '#ff7a59', '#7c5cff', '#e0559b', '#aab4af'];
 
 export const coloreGruppo = (gruppo: string) => COLORI[gruppo] ?? '#aab4af';
 
