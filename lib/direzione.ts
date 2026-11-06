@@ -17,7 +17,9 @@ export type Riepilogo = {
 	oggi: string;
 	kpi: Kpi;
 	soci: { oggi: number; mese_fa: number; anno_fa: number };
-	fatturato_mensile: { mese_da: string; gruppo: string; fatturato: number }[];
+	fatturato_mensile: { mese_da: string; gruppo: string; fatturato: number; vendite: number }[];
+	/** Gli stessi mesi un anno prima (il mese in corso, fino allo stesso giorno). */
+	mensile_prec: { mese_da: string; fatturato: number; vendite: number }[];
 	soci_mensili: { mese_da: string; gruppo: string; soci: number }[];
 	ultime_vendite: { data_vendita: string; abbonamento: string; totale: number; gruppo: string }[];
 };
@@ -27,13 +29,15 @@ export type Direzione = {
 	/** null = tutti i gruppi */
 	scelti: string[] | null;
 	riepilogo: Riepilogo;
-	aggiornato_il: string | null;
+	/** Quando e' stato calcolato il riepilogo e quando e' arrivata l'ultima sincronizzazione da Info4U. */
+	calcolato_il: string | null;
+	sincronizzato_il: string | null;
 };
 
 /**
  * `param` e' il valore di ?gruppi= (es. «Nuoto,Corsi»). In sviluppo,
  * DIREZIONE_PROVA puo' puntare a un file JSON con gruppi, riepilogo e
- * aggiornato_il: serve a vedere la pagina senza la chiave del database, e non
+ * calcolato_il e sincronizzato_il: serve a vedere la pagina senza la chiave del database, e non
  * si usa in produzione.
  */
 export async function caricaDirezione(param: string | undefined): Promise<Direzione> {
@@ -49,15 +53,17 @@ export async function caricaDirezione(param: string | undefined): Promise<Direzi
 	const gruppi = elenco.data as string[];
 	const scelti = leggiGruppi(param, gruppi);
 
-	const [riepilogo, ultimo] = await Promise.all([
-		db.rpc('direzione_riepilogo', { p_gruppi: scelti }),
-		db.from('abbonamenti').select('sincronizzato_il').order('sincronizzato_il', { ascending: false }).limit(1),
-	]);
-	if (riepilogo.error) throw new Error(`direzione_riepilogo: ${riepilogo.error.message}`);
+	const riepilogo = await db.rpc('direzione_leggi', { p_gruppi: scelti });
+	if (riepilogo.error) throw new Error(`direzione_leggi: ${riepilogo.error.message}`);
+	const { calcolato_il, sincronizzato_il, ...dati } = riepilogo.data as Riepilogo & {
+		calcolato_il?: string;
+		sincronizzato_il?: string;
+	};
 	return {
 		gruppi,
 		scelti,
-		riepilogo: riepilogo.data as Riepilogo,
-		aggiornato_il: (ultimo.data?.[0]?.sincronizzato_il as string | undefined) ?? null,
+		riepilogo: dati,
+		calcolato_il: calcolato_il ?? null,
+		sincronizzato_il: sincronizzato_il ?? null,
 	};
 }

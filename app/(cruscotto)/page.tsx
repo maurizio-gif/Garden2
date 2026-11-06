@@ -1,62 +1,92 @@
-import { BarreImpilate } from '@/components/BarreImpilate';
+import { Colonne, type Punto } from '@/components/Colonne';
 import { GruppiFiltro } from '@/components/GruppiFiltro';
 import { Indicatore } from '@/components/Indicatore';
-import { Variazione } from '@/components/Variazione';
+import { SociAttivi } from '@/components/SociAttivi';
 import { caricaDirezione } from '@/lib/direzione';
 import {
 	annoDi,
-	formatData,
 	formatEuro,
 	formatGiornoBreve,
+	formatGiornoLungo,
 	formatIntero,
 	formatOrario,
+	meseBreve,
+	saluto,
 } from '@/lib/format';
 import { coloreGruppo } from '@/lib/gruppi';
 
 export const dynamic = 'force-dynamic';
 
-const SEZIONI = ['Direzione', 'Abbonamenti', 'Incassato', 'Vendite', 'Accessi', 'Soci', 'Operatori'];
-
-const formatoMigliaia = (n: number) => (n >= 1000 ? `${formatIntero(n / 1000)}k` : formatIntero(n));
-const formatoEuroAsse = (n: number) => (n >= 1000 ? `${formatIntero(n / 1000)}k €` : `${formatIntero(n)} €`);
+const ordina = <T extends { mese_da: string }>(a: T[]) => [...a].sort((x, y) => x.mese_da.localeCompare(y.mese_da));
 
 export default async function Direzione({ searchParams }: { searchParams: { gruppi?: string } }) {
-	const { riepilogo: r, gruppi, scelti, aggiornato_il } = await caricaDirezione(searchParams.gruppi);
+	const { riepilogo: r, gruppi, scelti, calcolato_il, sincronizzato_il } = await caricaDirezione(searchParams.gruppi);
 
-	const anno = annoDi(r.oggi);
-	const annoPrima = String(Number(anno) - 1);
+	const annoPrima = String(Number(annoDi(r.oggi)) - 1);
 	const k = r.kpi;
 	const ordine = scelti ?? gruppi;
+	const mesi = ordina(r.mensile_prec).map((m) => m.mese_da);
+
+	// Totali per mese, per le linee piccole dei numeri.
+	const perMese = (campo: 'fatturato' | 'vendite') =>
+		mesi.map((m) => r.fatturato_mensile.filter((d) => d.mese_da === m).reduce((s, d) => s + Number(d[campo]), 0));
+	const cumulata = (serie: number[]) => serie.reduce<number[]>((acc, v) => [...acc, (acc.at(-1) ?? 0) + v], []);
+	const fatturatoMese = perMese('fatturato');
+	const venditeMese = perMese('vendite');
+
+	const puntiFatturato: Punto[] = mesi.map((m, i) => {
+		const prec = r.mensile_prec.find((x) => x.mese_da === m);
+		return {
+			chiave: m,
+			etichetta: meseBreve(m),
+			anno: i === 0 || m.slice(5, 7) === '01' ? annoDi(m) : undefined,
+			titolo: `${meseBreve(m)} ${annoDi(m)}${i === mesi.length - 1 ? ' · finora' : ''}`,
+			inCorso: i === mesi.length - 1,
+			parti: ordine.map((g) => ({
+				gruppo: g,
+				valore: Number(r.fatturato_mensile.find((d) => d.mese_da === m && d.gruppo === g)?.fatturato ?? 0),
+			})),
+			confronto: prec ? { valore: Number(prec.fatturato), etichetta: `${meseBreve(m)} ${Number(annoDi(m)) - 1}` } : undefined,
+		};
+	});
+	const puntiSoci: Punto[] = mesi.map((m, i) => ({
+		chiave: m,
+		etichetta: meseBreve(m),
+		anno: i === 0 || m.slice(5, 7) === '01' ? annoDi(m) : undefined,
+		titolo: `${meseBreve(m)} ${annoDi(m)}${i === mesi.length - 1 ? ' · oggi' : ' · fine mese'}`,
+		inCorso: i === mesi.length - 1,
+		parti: ordine.map((g) => ({
+			gruppo: g,
+			valore: Number(r.soci_mensili.find((d) => d.mese_da === m && d.gruppo === g)?.soci ?? 0),
+		})),
+	}));
+
+	const aggiornamento = sincronizzato_il ?? calcolato_il;
 
 	return (
 		<div className="contenitore">
-			<header className="testata">
-				<div className="eyebrow">Cruscotto club</div>
-				<h1>
-					Garden, <em>come stiamo andando</em>.
-				</h1>
-				<p className="sotto">
-					Vendite, fatturato e soci attivi di oggi, confrontati con lo stesso punto dell&apos;anno scorso.
-				</p>
-				{aggiornato_il && (
-					<span className="stato">
-						Ultimo aggiornamento {formatGiornoBreve(aggiornato_il)}, ore {formatOrario(aggiornato_il)} · sincronizzazione ogni 5 minuti
-					</span>
+			<header className="hero entra">
+				<div>
+					<div className="eyebrow">{formatGiornoLungo(new Date())}</div>
+					<h1>
+						{saluto()}, ecco come va <em>Garden</em>.
+					</h1>
+					<p className="sotto">
+						Vendite, fatturato e soci attivi di oggi, confrontati con lo stesso punto del {annoPrima}.
+					</p>
+				</div>
+				{aggiornamento && (
+					<div className="live" title="Ultima sincronizzazione dei dati del gestionale">
+						<i aria-hidden />
+						<span>
+							Dati del gestionale
+							<b>
+								{formatGiornoBreve(aggiornamento)}, ore {formatOrario(aggiornamento)}
+							</b>
+						</span>
+					</div>
 				)}
 			</header>
-
-			<nav className="sezioni" aria-label="Sezioni del cruscotto">
-				{SEZIONI.map((s) => (
-					<span key={s} className={`sezione ${s === 'Direzione' ? 'attiva' : ''}`} aria-current={s === 'Direzione' ? 'page' : undefined}>
-						{s}
-					</span>
-				))}
-			</nav>
-
-			<h2 className="titolo-sezione">Dashboard direzionale</h2>
-			<p className="nota">
-				Aggiornata a oggi, {formatData(r.oggi)}: da inizio mese e da inizio anno, confrontati a parità di giorni con il {annoPrima}.
-			</p>
 
 			<GruppiFiltro gruppi={gruppi} scelti={scelti} />
 
@@ -67,7 +97,10 @@ export default async function Direzione({ searchParams }: { searchParams: { grup
 					ora={k.vendite_mese}
 					prima={k.vendite_mese_prec}
 					annoPrima={annoPrima}
-					formato={formatIntero}
+					formato="intero"
+					serie={venditeMese}
+					colore="#0f9d6b"
+					ritardo={0}
 				/>
 				<Indicatore
 					titolo="Fatturato da inizio mese"
@@ -75,102 +108,76 @@ export default async function Direzione({ searchParams }: { searchParams: { grup
 					ora={k.fatturato_mese}
 					prima={k.fatturato_mese_prec}
 					annoPrima={annoPrima}
-					formato={formatEuro}
+					formato="euro"
+					serie={fatturatoMese}
+					colore="#1ba8e0"
+					ritardo={70}
 				/>
 				<Indicatore
 					titolo="Vendite da inizio anno"
-					periodo="dal 1 gennaio"
+					periodo="dal 1 gennaio, a pari giorni"
 					ora={k.vendite_anno}
 					prima={k.vendite_anno_prec}
 					annoPrima={annoPrima}
-					formato={formatIntero}
+					formato="intero"
+					serie={cumulata(venditeMese)}
+					colore="#f2a516"
+					ritardo={140}
 				/>
 				<Indicatore
 					titolo="Fatturato da inizio anno"
-					periodo="dal 1 gennaio"
+					periodo="dal 1 gennaio, a pari giorni"
 					ora={k.fatturato_anno}
 					prima={k.fatturato_anno_prec}
 					annoPrima={annoPrima}
-					formato={formatEuro}
+					formato="euro"
+					serie={cumulata(fatturatoMese)}
+					colore="#7c5cff"
+					ritardo={210}
 				/>
 			</div>
 
-			<section className="sezione-blocco">
-				<h2>Soci attivi</h2>
-				<p className="nota">
-					Persone con almeno un abbonamento in corso, non scaduto
-					{scelti ? '' : '. Le quote associative non contano.'}
-				</p>
-				<div className="scheda soci">
-					<div className="principale">
-						<h3>Oggi</h3>
-						<div className="grande">{formatIntero(r.soci.oggi)}</div>
-						<div className="piccolo">{formatData(r.oggi)}</div>
-					</div>
-					<div>
-						<h3>Un mese fa</h3>
-						<div className="grande">{formatIntero(r.soci.mese_fa)}</div>
-						<div className="piccolo">
-							rispetto a oggi <Variazione ora={r.soci.oggi} prima={r.soci.mese_fa} />
-						</div>
-					</div>
-					<div>
-						<h3>Un anno fa</h3>
-						<div className="grande">{formatIntero(r.soci.anno_fa)}</div>
-						<div className="piccolo">
-							rispetto a oggi <Variazione ora={r.soci.oggi} prima={r.soci.anno_fa} />
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<div className="griglia due sezione-blocco">
-				<div className="scheda">
+			<div className="griglia principale">
+				<SociAttivi oggi={r.soci.oggi} meseFa={r.soci.mese_fa} annoFa={r.soci.anno_fa} giorno={r.oggi} conQuote={scelti !== null} />
+				<div className="scheda entra" style={{ '--ritardo': '400ms' } as React.CSSProperties}>
 					<h3>Fatturato mensile per gruppo</h3>
-					<p className="nota">ultimi 12 mesi</p>
-					<BarreImpilate
-						dati={r.fatturato_mensile.map((d) => ({ mese_da: d.mese_da, gruppo: d.gruppo, valore: Number(d.fatturato) }))}
-						gruppi={ordine}
-						formato={formatEuro}
-						formatoAsse={formatoEuroAsse}
-					/>
-				</div>
-				<div className="scheda">
-					<h3>Soci attivi per mese</h3>
-					<p className="nota">a fine mese, per gruppo (un socio con più gruppi compare in ciascuno)</p>
-					<BarreImpilate
-						dati={r.soci_mensili.map((d) => ({ mese_da: d.mese_da, gruppo: d.gruppo, valore: Number(d.soci) }))}
-						gruppi={ordine}
-						formato={formatIntero}
-						formatoAsse={formatoMigliaia}
-					/>
+					<p className="nota">Ultimi 12 mesi, con lo stesso mese dell&apos;anno scorso. Passa sopra una colonna per i dettagli.</p>
+					<Colonne punti={puntiFatturato} gruppi={ordine} formato="euro" />
 				</div>
 			</div>
 
-			<section className="sezione-blocco">
-				<h2>Ultime vendite dal gestionale</h2>
-				<p className="nota">le quattro più recenti, senza nomi dei clienti</p>
-				<div className="vendite-recenti">
-					{r.ultime_vendite.map((v) => (
-						<div key={v.data_vendita + v.abbonamento} className="vendita">
-							<div className="riga">
-								<span>
-									{formatGiornoBreve(v.data_vendita)} · {formatOrario(v.data_vendita)}
-								</span>
-								<b>{formatEuro(Number(v.totale))}</b>
-							</div>
-							<div className="nome">{v.abbonamento}</div>
-							<div className="gruppo">
-								<i style={{ background: coloreGruppo(v.gruppo) }} />
-								{v.gruppo}
-							</div>
-						</div>
-					))}
+			<div className="griglia secondaria">
+				<div className="scheda entra" style={{ '--ritardo': '480ms' } as React.CSSProperties}>
+					<h3>Soci attivi per mese</h3>
+					<p className="nota">A fine mese, per gruppo: un socio con più abbonamenti compare in ciascuno.</p>
+					<Colonne punti={puntiSoci} gruppi={ordine} formato="intero" />
 				</div>
-			</section>
+				<div className="scheda entra" style={{ '--ritardo': '560ms' } as React.CSSProperties}>
+					<h3 className="con-live">
+						<i className="punto-live" aria-hidden />
+						Ultime vendite
+					</h3>
+					<p className="nota">Le quattro più recenti dal gestionale, senza nomi.</p>
+					<ul className="feed">
+						{r.ultime_vendite.map((v, i) => (
+							<li key={v.data_vendita + v.abbonamento} style={{ '--i': i } as React.CSSProperties}>
+								<span className="feed-barra" style={{ background: coloreGruppo(v.gruppo) }} />
+								<span className="feed-corpo">
+									<b>{v.abbonamento}</b>
+									<small>
+										{v.gruppo} · {formatGiornoBreve(v.data_vendita)}, {formatOrario(v.data_vendita)}
+									</small>
+								</span>
+								<span className="feed-importo">{formatEuro(Number(v.totale))}</span>
+							</li>
+						))}
+					</ul>
+				</div>
+			</div>
 
 			<p className="piede">
-				Vendite e fatturato per data di vendita, dal 2016. Il fatturato è il totale degli abbonamenti venduti, non la cassa incassata.
+				Vendite e fatturato per data di vendita, dal 2016: il fatturato è il totale degli abbonamenti venduti, non la cassa. Numeri ricalcolati ogni dieci
+				minuti{calcolato_il ? `, l’ultima volta alle ${formatOrario(calcolato_il)}` : ''}.
 			</p>
 		</div>
 	);

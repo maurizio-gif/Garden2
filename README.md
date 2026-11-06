@@ -20,8 +20,11 @@ puntare a un file JSON con i numeri della schermata.
 
 ## Direzione
 
-I numeri arrivano da `direzione_riepilogo` (vendite e fatturato a pari giorni,
-soci attivi, ultimi 12 mesi). I prodotti si raggruppano con la tabella
+I numeri arrivano da `direzione_leggi`, che legge `direzione_cache` (calcolata
+da `direzione_riepilogo` ogni dieci minuti con pg_cron: la pagina legge una
+riga invece di ricalcolare in 1,6 secondi): vendite e fatturato a pari giorni,
+soci attivi, ultimi 12 mesi, con il confronto con l'anno prima. Chi apre dopo
+mezzanotte o con una combinazione di gruppi mai calcolata la ricalcola da solo. I prodotti si raggruppano con la tabella
 `prodotti_gruppi` (categoria Info4U -> gruppo): una categoria non elencata
 finisce in «Altro». Si corregge con una riga SQL, senza toccare il codice.
 

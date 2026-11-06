@@ -32,3 +32,24 @@ const orario = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-di
 const giornoBreve = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', timeZone: 'Europe/Rome' });
 export const formatOrario = (iso: string) => orario.format(new Date(iso));
 export const formatGiornoBreve = (iso: string) => giornoBreve.format(new Date(iso));
+
+export type Formato = 'intero' | 'euro' | 'euroBreve';
+
+/** Il formato si passa per nome ai componenti client: una funzione non attraversa il confine con il server. */
+export function formattaPer(formato: Formato, n: number): string {
+	if (formato === 'euro') return formatEuro(n);
+	if (formato === 'euroBreve') {
+		if (Math.abs(n) >= 1_000_000) return `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 }).format(n / 1_000_000)} M€`;
+		return Math.abs(n) >= 1000 ? `${formatIntero(n / 1000)}k €` : `${formatIntero(n)} €`;
+	}
+	return formatIntero(n);
+}
+
+/** Saluto in base all'ora di Roma. */
+export function saluto(adesso: Date = new Date()): string {
+	const ora = Number(new Intl.DateTimeFormat('it-IT', { hour: 'numeric', hour12: false, timeZone: 'Europe/Rome' }).format(adesso));
+	return ora < 13 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+}
+
+const giornoSettimana = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' });
+export const formatGiornoLungo = (d: Date) => giornoSettimana.format(d);
