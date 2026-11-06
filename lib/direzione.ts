@@ -21,7 +21,6 @@ export type Riepilogo = {
 	/** Gli stessi mesi un anno prima (il mese in corso, fino allo stesso giorno). */
 	mensile_prec: { mese_da: string; fatturato: number; vendite: number }[];
 	soci_mensili: { mese_da: string; gruppo: string; soci: number }[];
-	ultime_vendite: { data_vendita: string; abbonamento: string; totale: number; gruppo: string }[];
 };
 
 export type Direzione = {
@@ -66,4 +65,30 @@ export async function caricaDirezione(param: string | undefined): Promise<Direzi
 		calcolato_il: calcolato_il ?? null,
 		sincronizzato_il: sincronizzato_il ?? null,
 	};
+}
+
+export type UltimaVendita = {
+	data_vendita: string;
+	abbonamento: string;
+	totale: number;
+	gruppo: string;
+	nome: string | null;
+	cognome: string | null;
+	venduto_da: string | null;
+	di_oggi: boolean;
+};
+
+/**
+ * Le vendite di oggi (almeno le ultime 12 se la giornata e' tranquilla), con il
+ * nominativo. Si legge dal vivo, non dalla cache: costa pochi millisecondi.
+ */
+export async function caricaUltimeVendite(scelti: string[] | null): Promise<UltimaVendita[]> {
+	const prova = process.env.DIREZIONE_PROVA;
+	if (prova && process.env.NODE_ENV !== 'production') {
+		const d = JSON.parse(await readFile(prova, 'utf8')) as { ultime_nominativi?: UltimaVendita[] };
+		return d.ultime_nominativi ?? [];
+	}
+	const { data, error } = await supabaseServer().rpc('direzione_ultime_vendite', { p_gruppi: scelti });
+	if (error) throw new Error(`direzione_ultime_vendite: ${error.message}`);
+	return data as UltimaVendita[];
 }

@@ -53,3 +53,11 @@ export function saluto(adesso: Date = new Date()): string {
 
 const giornoSettimana = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' });
 export const formatGiornoLungo = (d: Date) => giornoSettimana.format(d);
+
+/** «ROSSI» -> «Rossi», «de luca» -> «De Luca», «D'ANGELO» -> «D'Angelo». */
+const maiuscole = (t: string) => t.toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (_, sep: string, l: string) => sep + l.toUpperCase());
+
+export function nominativo(nome: string | null, cognome: string | null): string {
+	const intero = [nome, cognome].map((x) => (x ?? '').trim()).filter(Boolean).join(' ');
+	return intero ? maiuscole(intero) : 'Cliente non collegato';
+}

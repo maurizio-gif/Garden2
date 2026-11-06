@@ -1,8 +1,9 @@
+import { Fragment } from 'react';
 import { Colonne, type Punto } from '@/components/Colonne';
 import { GruppiFiltro } from '@/components/GruppiFiltro';
 import { Indicatore } from '@/components/Indicatore';
 import { SociAttivi } from '@/components/SociAttivi';
-import { caricaDirezione } from '@/lib/direzione';
+import { caricaDirezione, caricaUltimeVendite } from '@/lib/direzione';
 import {
 	annoDi,
 	formatEuro,
@@ -11,6 +12,7 @@ import {
 	formatIntero,
 	formatOrario,
 	meseBreve,
+	nominativo,
 	saluto,
 } from '@/lib/format';
 import { coloreGruppo } from '@/lib/gruppi';
@@ -22,6 +24,8 @@ const ordina = <T extends { mese_da: string }>(a: T[]) => [...a].sort((x, y) => 
 export default async function Direzione({ searchParams }: { searchParams: { gruppi?: string } }) {
 	const { riepilogo: r, gruppi, scelti, calcolato_il, sincronizzato_il } = await caricaDirezione(searchParams.gruppi);
 
+	const ultime = await caricaUltimeVendite(scelti);
+	const venditeOggi = ultime.filter((v) => v.di_oggi).length;
 	const annoPrima = String(Number(annoDi(r.oggi)) - 1);
 	const k = r.kpi;
 	const ordine = scelti ?? gruppi;
@@ -156,20 +160,27 @@ export default async function Direzione({ searchParams }: { searchParams: { grup
 					<h3 className="con-live">
 						<i className="punto-live" aria-hidden />
 						Ultime vendite
+						<span className="conta">{venditeOggi > 0 ? `${venditeOggi} oggi` : 'nessuna oggi'}</span>
 					</h3>
-					<p className="nota">Le quattro più recenti dal gestionale, senza nomi.</p>
-					<ul className="feed">
-						{r.ultime_vendite.map((v, i) => (
-							<li key={v.data_vendita + v.abbonamento} style={{ '--i': i } as React.CSSProperties}>
-								<span className="feed-barra" style={{ background: coloreGruppo(v.gruppo) }} />
-								<span className="feed-corpo">
-									<b>{v.abbonamento}</b>
-									<small>
-										{v.gruppo} · {formatGiornoBreve(v.data_vendita)}, {formatOrario(v.data_vendita)}
-									</small>
-								</span>
-								<span className="feed-importo">{formatEuro(Number(v.totale))}</span>
-							</li>
+					<p className="nota">Le vendite di oggi, con il nominativo. Scorri per vedere le altre.</p>
+					<ul className="feed scorre" tabIndex={0} aria-label="Elenco delle ultime vendite">
+						{ultime.map((v, i) => (
+							<Fragment key={v.data_vendita + v.abbonamento + i}>
+								{!v.di_oggi && (i === 0 || ultime[i - 1].di_oggi) && <li className="feed-divisore">Vendite precedenti</li>}
+								<li style={{ '--i': Math.min(i, 6) } as React.CSSProperties}>
+									<span className="feed-barra" style={{ background: coloreGruppo(v.gruppo) }} />
+									<span className="feed-corpo">
+										<b>{nominativo(v.nome, v.cognome)}</b>
+										<span className="feed-prodotto">{v.abbonamento}</span>
+										<small>
+											{v.gruppo} · {v.di_oggi ? '' : `${formatGiornoBreve(v.data_vendita)}, `}
+											{formatOrario(v.data_vendita)}
+											{v.venduto_da ? ` · ${v.venduto_da.toLowerCase()}` : ''}
+										</small>
+									</span>
+									<span className="feed-importo">{formatEuro(Number(v.totale))}</span>
+								</li>
+							</Fragment>
 						))}
 					</ul>
 				</div>
