@@ -1,3 +1,10 @@
 ops/sync-info4u/config.json
 ops/sync-info4u/sync.log
 ._*
+
+node_modules/
+.next/
+next-env.d.ts
+tsconfig.tsbuildinfo
+.env*.local
+.dati-prova/
