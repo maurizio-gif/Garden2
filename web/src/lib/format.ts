@@ -4,6 +4,7 @@ export const euro = new Intl.NumberFormat("it-IT", {
 	style: "currency",
 	currency: "EUR",
 	maximumFractionDigits: 0,
+	useGrouping: "always",
 });
 
 export const intero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: "always" });

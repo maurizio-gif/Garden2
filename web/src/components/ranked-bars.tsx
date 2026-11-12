@@ -6,7 +6,7 @@ import { useRef } from "react";
 export type RigaOrdinata = { etichetta: string; valore: number; confronto?: number | null };
 
 const intero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: "always" });
-const soldi = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const soldi = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" });
 
 /**
  * Barre orizzontali ordinate, la più lunga in alto: è la forma che permette di

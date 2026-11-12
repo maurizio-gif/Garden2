@@ -5,6 +5,7 @@ import type {
 	Analisi,
 	ConfrontoAnni,
 	ElencoVendite,
+	Finanza,
 	Home,
 	Opzioni,
 	Vendita,
@@ -246,4 +247,103 @@ export function confrontoDemo(adesso: Date): ConfrontoAnni {
 		};
 	});
 	return { oggi, aggiornato_al: giorniFa(adesso, 0, 8), iscritti, ytd, anni, mensile, movimento };
+}
+
+export function finanzaDemo(adesso: Date): Finanza {
+	const oggi = adesso.toISOString().slice(0, 10);
+	const anno = adesso.getUTCFullYear();
+	const mese = adesso.getUTCMonth() + 1;
+	const crescita = [1, 0.96, 0.95, 0.9];
+	const periodi = (["mtd", "ytd"] as const).flatMap((periodo) =>
+		crescita.map((_, k) => ({
+			periodo,
+			anni_fa: k,
+			da: periodo === "mtd" ? `${anno - k}-${String(mese).padStart(2, "0")}-01` : `${anno - k}-01-01`,
+			a: `${anno - k}${oggi.slice(4)}`,
+		})),
+	);
+	const fattore = (p: "mtd" | "ytd") => (p === "mtd" ? 0.032 : 1);
+	const venduto = (["mtd", "ytd"] as const).flatMap((periodo) =>
+		crescita.flatMap((c, k) => [
+			{ periodo, anni_fa: k, gruppo: null, vendite: Math.round(20_000 * c * fattore(periodo)), fatturato: Math.round(3_300_000 * c * fattore(periodo)) },
+			...GRUPPI.map((g, i) => ({
+				periodo,
+				anni_fa: k,
+				gruppo: g,
+				vendite: Math.round((9000 / (i + 1)) * c * fattore(periodo)),
+				fatturato: Math.round((1_300_000 / (i + 1)) * c * fattore(periodo)),
+			})),
+		]),
+	);
+	const tipologie = [...GRUPPI, "Quote e tessere", "Ingressi e vendite singole", "Iscrizioni a corsi", "Cauzioni tessere"];
+	const incassato_tipologia = (["mtd", "ytd"] as const).flatMap((periodo) =>
+		crescita.flatMap((c, k) =>
+			tipologie.map((t, i) => ({
+				periodo,
+				anni_fa: k,
+				tipologia: t,
+				da_abbonamento: i < GRUPPI.length + 1,
+				importo: Math.round((1_100_000 / (i + 1)) * c * fattore(periodo)),
+				n: Math.round((5000 / (i + 1)) * c * fattore(periodo)),
+			})),
+		),
+	);
+	const metodi = ["Bancomat", "Contanti", "Bonifico", "RID (addebito)", "Carta di credito"];
+	const incassato_metodo = (["mtd", "ytd"] as const).flatMap((periodo) =>
+		crescita.flatMap((c, k) =>
+			metodi.map((m, i) => ({
+				periodo,
+				anni_fa: k,
+				metodo: m,
+				importo: Math.round((1_400_000 / (i + 1)) * c * fattore(periodo)),
+				n: Math.round((20_000 / (i + 1)) * c * fattore(periodo)),
+			})),
+		),
+	);
+	const peso = [0.07, 0.06, 0.07, 0.05, 0.08, 0.17, 0.08, 0.06, 0.17, 0.09, 0.06, 0.04];
+	const mesi = crescita.flatMap((c, k) =>
+		peso.flatMap((p, m) => {
+			if (k === 0 && m + 1 > mese) return [];
+			return [
+				{
+					anno: anno - k,
+					mese: m + 1,
+					venduto: Math.round(3_300_000 * p * c),
+					incassato: Math.round(3_500_000 * (peso[(m + 11) % 12] * 0.5 + p * 0.5) * c),
+					incassato_abbonamenti: Math.round(3_200_000 * (peso[(m + 11) % 12] * 0.5 + p * 0.5) * c),
+				},
+			];
+		}),
+	);
+	return {
+		oggi,
+		aggiornato_al: giorniFa(adesso, 0, 8),
+		periodi,
+		venduto,
+		incassato_tipologia,
+		incassato_metodo,
+		mesi,
+		crediti: {
+			fasce: {
+				s1: { n: 232, importo: 43_900 },
+				s2: { n: 145, importo: 21_800 },
+				s3: { n: 70, importo: 8_900 },
+				s4: { n: 117, importo: 11_100 },
+				s5: { n: 3127, importo: 388_000 },
+				f1: { n: 655, importo: 136_000 },
+				f2: { n: 741, importo: 133_000 },
+				f3: { n: 350, importo: 50_000 },
+			},
+			per_gruppo: GRUPPI.map((g, i) => ({ gruppo: g, n: 300 / (i + 1), importo: Math.round(80_000 / (i + 1)) })),
+			per_metodo: metodi.map((m, i) => ({ metodo: m, n: 200 / (i + 1), importo: Math.round(60_000 / (i + 1)) })),
+			storico: crescita.map((_, k) => ({ anni_fa: k, giorno: `${anno - k}${oggi.slice(4)}`, n: 300 - k * 30, importo: 60_000 - k * 8000 })),
+			debitori: NOMI.slice(0, 8).map(([nome, cognome], i) => ({
+				nome,
+				cognome,
+				importo: 1700 - i * 150,
+				rate: 1 + (i % 3),
+				piu_vecchia: giorniFa(adesso, 20 + i * 15).slice(0, 10),
+			})),
+		},
+	};
 }

@@ -15,7 +15,7 @@ export type PuntoBarre = {
 	incompleto?: boolean;
 };
 
-const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" });
 const compatto = new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 0 });
 
 /** Scala «pulita»: quattro intervalli con passo 1, 2, 2,5 o 5 × 10ⁿ. */

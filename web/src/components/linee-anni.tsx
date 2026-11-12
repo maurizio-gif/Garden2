@@ -13,7 +13,7 @@ export type SerieAnno = {
 };
 
 const MESI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
-const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" });
 const intero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
 const compatto = new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 });
 

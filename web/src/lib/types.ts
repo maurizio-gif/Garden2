@@ -90,3 +90,37 @@ export type ConfrontoAnni = {
 };
 
 export type Vista = { id: string; nome: string; query: string; creato_il: string };
+
+// ── Finanza (supabase/migrations/20261113090000_dashboard_finanza.sql)
+
+export type PeriodoFin = "mtd" | "ytd";
+
+export type Finanza = {
+	oggi: string;
+	aggiornato_al: string | null;
+	/** Gli intervalli di date di ogni periodo e anno (MTD = da inizio mese, YTD = da inizio anno). */
+	periodi: { periodo: PeriodoFin; anni_fa: number; da: string; a: string }[];
+	/** `gruppo: null` è il totale. Comprende le quote associative. */
+	venduto: { periodo: PeriodoFin; anni_fa: number; gruppo: string | null; vendite: number; fatturato: number }[];
+	incassato_tipologia: {
+		periodo: PeriodoFin;
+		anni_fa: number;
+		tipologia: string;
+		/** Pagamento di un abbonamento (e non ingressi singoli, agenda, cauzioni…). */
+		da_abbonamento: boolean;
+		importo: number;
+		n: number;
+	}[];
+	incassato_metodo: { periodo: PeriodoFin; anni_fa: number; metodo: string; importo: number; n: number }[];
+	/** Mese per mese, dall'inizio di quattro anni fa a oggi. */
+	mesi: { anno: number; mese: number; venduto: number; incassato: number; incassato_abbonamenti: number }[];
+	crediti: {
+		/** s1…s5 = scaduto da 1-30, 31-90, 91-180, 181-365, oltre 365 giorni; f1…f3 = in scadenza entro 30, 31-90, oltre 90 giorni. */
+		fasce: Record<string, { n: number; importo: number }>;
+		per_gruppo: { gruppo: string; n: number; importo: number }[];
+		per_metodo: { metodo: string; n: number; importo: number }[];
+		/** Credito scaduto da meno di 90 giorni nello stesso giorno degli anni scorsi. */
+		storico: { anni_fa: number; giorno: string; n: number; importo: number }[];
+		debitori: { nome: string | null; cognome: string | null; importo: number; rate: number; piu_vecchia: string }[];
+	};
+};

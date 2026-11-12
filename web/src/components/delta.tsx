@@ -23,7 +23,9 @@ export function Delta({
 	if (prima == null) return <span className="text-ink-3">—</span>;
 	const diff = ora - prima;
 	const perc = variazione(ora, prima);
-	if (diff === 0) return <span className="text-xs text-ink-3">invariato</span>;
+	if (diff === 0 || (perc != null && Math.round(perc) === 0 && !assoluto)) {
+		return <span className="text-xs text-ink-3">stabile</span>;
+	}
 	const su = diff > 0;
 	const bene = inverso ? !su : su;
 	const testo = [

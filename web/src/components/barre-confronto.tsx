@@ -14,7 +14,7 @@ export type ColonnaConfronto = {
 	nomeConfronto?: string;
 };
 
-const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" });
 const intero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: "always" });
 const compatto = new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 });
 

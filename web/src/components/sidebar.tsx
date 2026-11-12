@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 const VOCI = [
 	{ href: "/", nome: "Panoramica", icona: IconaPanoramica },
 	{ href: "/abbonamenti", nome: "Abbonamenti", icona: IconaAbbonamenti },
+	{ href: "/finanza", nome: "Finanza", icona: IconaFinanza },
 	{ href: "/analisi", nome: "Analisi", icona: IconaAnalisi },
 	{ href: "/accessi", nome: "Accessi", icona: IconaAccessi },
 ] as const;
@@ -127,6 +128,15 @@ function IconaAnalisi({ className }: { className?: string }) {
 			<path d="M4 20h16" />
 			<path d="m7.5 15 3.5-4 3 2.5 4.5-6" />
 			<path d="M16 7.5h2.5V10" />
+		</svg>
+	);
+}
+
+function IconaFinanza({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
+			<circle cx="12" cy="12" r="8.5" />
+			<path d="M14.8 9.3c-.5-.9-1.5-1.4-2.8-1.4-1.6 0-2.7.8-2.7 2 0 2.9 5.6 1.4 5.6 4.2 0 1.2-1.2 2-2.9 2-1.4 0-2.5-.6-3-1.6M12 6.5v1.4m0 8.2v1.4" />
 		</svg>
 	);
 }

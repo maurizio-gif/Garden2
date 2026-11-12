@@ -15,6 +15,7 @@ import {
 	analisiDemo,
 	confrontoDemo,
 	elencoVenditeDemo,
+	finanzaDemo,
 	homeDemo,
 	opzioniDemo,
 } from "./demo";
@@ -24,6 +25,7 @@ import type {
 	Analisi,
 	ConfrontoAnni,
 	ElencoVendite,
+	Finanza,
 	Home,
 	Opzioni,
 	Vista,
@@ -237,4 +239,20 @@ export async function eliminaVistaDb(id: string) {
 	if (!db) return;
 	const { error } = await db.from("dashboard_viste").delete().eq("id", id);
 	if (error) throw new Error(`Non riesco a eliminare la vista: ${error.message}`);
+}
+
+// ── Finanza: venduto, incassato, crediti
+// (supabase/migrations/20261113090000_dashboard_finanza.sql)
+
+/**
+ * Rilegge quattro anni di transazioni: ~4 secondi di calcolo. Si tiene in
+ * cache e si rinnova ogni cinque minuti (come il sync): chi arriva dopo la
+ * scadenza vede subito il numero precedente mentre quello nuovo si calcola.
+ */
+export async function leggiFinanza(): Promise<Letto<Finanza>> {
+	"use cache";
+	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: finanzaDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<Finanza>("dashboard_finanza", { p_anni: 3 }), modo: "reale", adesso };
 }
