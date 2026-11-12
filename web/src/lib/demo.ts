@@ -1,4 +1,14 @@
-import type { AbbonamentiRecenti, AccessiRecenti, Home, Vendita } from "./types";
+import { colonneTempo, isTempo, type Raggruppa } from "./analisi";
+import type {
+	AbbonamentiRecenti,
+	AccessiRecenti,
+	Analisi,
+	ConfrontoAnni,
+	ElencoVendite,
+	Home,
+	Opzioni,
+	Vendita,
+} from "./types";
 
 /**
  * Dati di prova per quando le variabili di Supabase non ci sono (anteprime,
@@ -105,4 +115,135 @@ export function accessiDemo(adesso: Date): AccessiRecenti {
 			};
 		}),
 	};
+}
+
+// ── Analisi e confronto (dati inventati, stessa forma delle funzioni SQL)
+
+const GRUPPI = ["Fitness e wellness", "Nuoto", "Corsi", "Junior e camp", "Personal training"];
+
+/** Numero stabile tra 0 e 1 a partire da un testo: i dati di prova non ballano a ogni ricarica. */
+function seme(testo: string) {
+	let h = 2166136261;
+	for (const c of testo) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+	return ((h >>> 0) % 10_000) / 10_000;
+}
+
+export function opzioniDemo(): Opzioni {
+	return {
+		gruppi: [...GRUPPI].sort(),
+		categorie: PRODOTTI.map(([, categoria], i) => ({ categoria, gruppo: GRUPPI[i % GRUPPI.length] })),
+		operatori: ["MARTA ROSSI", "LUCA GROSSI", "ANNA SERRA"],
+		prima_vendita: "2016-01-04",
+	};
+}
+
+export function analisiDemo(raggruppa: Raggruppa, da: string, a: string, salt: string): Analisi {
+	const chiavi = isTempo(raggruppa)
+		? colonneTempo(raggruppa, da, a)
+		: raggruppa === "niente"
+			? ["totale"]
+			: raggruppa === "gruppo"
+				? GRUPPI
+				: raggruppa === "operatore"
+					? ["MARTA ROSSI", "LUCA GROSSI", "ANNA SERRA"]
+					: raggruppa === "durata"
+						? ["12 mesi", "6 mesi", "3 mesi", "1 mese", "Pacchetto 1"]
+						: PRODOTTI.map(([nome, categoria]) => (raggruppa === "categoria" ? categoria : nome));
+	const righe = chiavi.map((chiave) => {
+		const vendite = Math.round(40 + seme(chiave + salt) * 260);
+		return {
+			chiave,
+			vendite,
+			persone: Math.round(vendite * (0.8 + seme(salt + chiave) * 0.15)),
+			fatturato: Math.round(vendite * (120 + seme(chiave) * 200)),
+		};
+	});
+	if (!isTempo(raggruppa)) righe.sort((x, y) => y.fatturato - x.fatturato);
+	const somma = (k: "vendite" | "persone" | "fatturato") => righe.reduce((t, r) => t + r[k], 0);
+	return {
+		totali: { vendite: somma("vendite"), persone: Math.round(somma("persone") * 0.9), fatturato: somma("fatturato") },
+		righe,
+		troncato: false,
+	};
+}
+
+export function elencoVenditeDemo(adesso: Date): ElencoVendite {
+	const righe = vendite(adesso, 24).map((v, i) => ({
+		vendita: v.quando.slice(0, 10),
+		inizio: v.inizio,
+		fine: v.fine,
+		nome: v.nome,
+		cognome: v.cognome,
+		abbonamento: v.abbonamento,
+		categoria: v.categoria,
+		gruppo: GRUPPI[i % GRUPPI.length],
+		durata: i % 2 ? "12 mesi" : "3 mesi",
+		operatore: ["MARTA ROSSI", "LUCA GROSSI", "ANNA SERRA"][i % 3],
+		totale: v.totale,
+	}));
+	return { totale: 1840, righe };
+}
+
+export function confrontoDemo(adesso: Date): ConfrontoAnni {
+	const oggi = adesso.toISOString().slice(0, 10);
+	const anno = adesso.getUTCFullYear();
+	const resto = oggi.slice(4);
+	const anni = Array.from({ length: 6 }, (_, k) => ({
+		anni_fa: k,
+		giorno: `${anno - k}${resto}`,
+		inizio: `${anno - k}-01-01`,
+	}));
+	const crescita = [1, 0.96, 0.95, 0.9, 0.86, 0.7];
+	const iscritti = anni.flatMap((an) => [
+		{ anni_fa: an.anni_fa, giorno: an.giorno, gruppo: null, persone: Math.round(5600 * crescita[an.anni_fa]) },
+		...GRUPPI.map((g, i) => ({
+			anni_fa: an.anni_fa,
+			giorno: an.giorno,
+			gruppo: g,
+			persone: Math.round((2400 / (i + 1)) * crescita[an.anni_fa] * (0.95 + seme(g + an.anni_fa) * 0.1)),
+		})),
+	]);
+	const ytd = anni.flatMap((an) => [
+		{
+			anni_fa: an.anni_fa,
+			gruppo: null,
+			vendite: Math.round(14400 * crescita[an.anni_fa]),
+			persone: Math.round(7200 * crescita[an.anni_fa]),
+			fatturato: Math.round(3_060_000 * crescita[an.anni_fa]),
+		},
+		...GRUPPI.map((g, i) => ({
+			anni_fa: an.anni_fa,
+			gruppo: g,
+			vendite: Math.round((6000 / (i + 1)) * crescita[an.anni_fa]),
+			persone: Math.round((3000 / (i + 1)) * crescita[an.anni_fa]),
+			fatturato: Math.round((1_200_000 / (i + 1)) * crescita[an.anni_fa]),
+		})),
+	]);
+	const peso = [0.07, 0.06, 0.07, 0.05, 0.08, 0.17, 0.08, 0.06, 0.17, 0.09, 0.06, 0.04];
+	const mensile = anni.flatMap((an) =>
+		peso.flatMap((p, m) => {
+			const a = anno - an.anni_fa;
+			if (a === anno && m + 1 > Number(oggi.slice(5, 7))) return [];
+			return [
+				{
+					anno: a,
+					mese: m + 1,
+					vendite: Math.round(15_000 * p * crescita[an.anni_fa]),
+					fatturato: Math.round(3_300_000 * p * crescita[an.anni_fa]),
+				},
+			];
+		}),
+	);
+	const movimento = Array.from({ length: 24 }, (_, i) => {
+		const d = new Date(Date.UTC(anno, adesso.getUTCMonth() - (23 - i), 1));
+		const s = seme(String(i));
+		return {
+			mese: d.toISOString().slice(0, 10),
+			nuovi: Math.round(80 + s * 400),
+			rientri: Math.round(100 + s * 350),
+			usciti: Math.round(150 + (1 - s) * 700),
+			attivi: Math.round(5000 + s * 600),
+		};
+	});
+	return { oggi, aggiornato_al: giorniFa(adesso, 0, 8), iscritti, ytd, anni, mensile, movimento };
 }
