@@ -1,6 +1,7 @@
 import { StaggerItem, Stagger } from "./motion-kit";
-import { dataBreve, euro, frase, iniziali, nomeCompleto, quandoRelativo } from "@/lib/format";
+import { dataBreve, euro, frase, iniziali, quandoRelativo } from "@/lib/format";
 import type { Vendita } from "@/lib/types";
+import { NomePersona } from "./nome-persona";
 
 const riga =
 	"flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2";
@@ -35,7 +36,7 @@ export function ListaVendite({
 				<StaggerItem as="li" key={`${v.quando}-${i}`} hover="nudge" className={riga}>
 					<Avatar nome={v.nome} cognome={v.cognome} />
 					<div className="min-w-0 flex-1">
-						<p className="truncate text-sm font-medium">{nomeCompleto(v.nome, v.cognome)}</p>
+						<p className="truncate text-sm font-medium"><NomePersona id={v.persona_id} nome={v.nome} cognome={v.cognome} /></p>
 						<p className="truncate text-xs text-ink-3">
 							{frase(v.abbonamento) || "Abbonamento"}
 							{v.categoria ? ` · ${frase(v.categoria)}` : ""}
@@ -58,7 +59,7 @@ export function ListaVendite({
 export function ListaAccessi({
 	accessi,
 }: {
-	accessi: { quando: string; nome: string | null; cognome: string | null; servizio: string | null }[];
+	accessi: { quando: string; persona_id?: string | null; nome: string | null; cognome: string | null; servizio: string | null }[];
 }) {
 	if (accessi.length === 0) {
 		return <p className="px-3 py-6 text-sm text-ink-3">Nessun accesso da mostrare.</p>;
@@ -76,7 +77,7 @@ export function ListaAccessi({
 				<StaggerItem as="li" key={`${a.quando}-${i}`} hover="nudge" className={riga}>
 					<Avatar nome={a.nome} cognome={a.cognome} />
 					<div className="min-w-0 flex-1">
-						<p className="truncate text-sm font-medium">{nomeCompleto(a.nome, a.cognome)}</p>
+						<p className="truncate text-sm font-medium"><NomePersona id={a.persona_id} nome={a.nome} cognome={a.cognome} /></p>
 						<p className="truncate text-xs text-ink-3">{a.servizio ? frase(a.servizio) : "Ingresso"}</p>
 					</div>
 					<p className="shrink-0 text-sm tabular-nums text-ink-2">{ora.format(new Date(a.quando))}</p>

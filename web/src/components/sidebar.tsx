@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
+import { Suspense } from "react";
 import { Logo } from "./logo";
 import { SceltaTema } from "./tema";
 
@@ -10,6 +11,7 @@ const VOCI = [
 	{ href: "/", nome: "Panoramica", icona: IconaPanoramica },
 	{ href: "/abbonamenti", nome: "Abbonamenti", icona: IconaAbbonamenti },
 	{ href: "/scadenze", nome: "Scadenze", icona: IconaScadenze },
+	{ href: "/contatti", nome: "Contatti", icona: IconaContatti },
 	{ href: "/finanza", nome: "Finanza", icona: IconaFinanza },
 	{ href: "/analisi", nome: "Analisi", icona: IconaAnalisi },
 	{ href: "/accessi", nome: "Accessi", icona: IconaAccessi },
@@ -24,8 +26,20 @@ const VOCI = [
  * spegnerla e riaccenderla.
  */
 export function Sidebar() {
-	const pathname = usePathname();
+	// L'indirizzo si conosce solo a richiesta: nelle pagine con un parametro
+	// (/contatti/<id>) va dentro Suspense. Intanto si disegna il menu senza voce attiva.
+	return (
+		<Suspense fallback={<Menu pathname={null} />}>
+			<MenuConPercorso />
+		</Suspense>
+	);
+}
 
+function MenuConPercorso() {
+	return <Menu pathname={usePathname()} />;
+}
+
+function Menu({ pathname }: { pathname: string | null }) {
 	return (
 		<aside
 			className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm
@@ -36,15 +50,18 @@ export function Sidebar() {
 					<Logo className="h-auto w-full" />
 				</Link>
 
-				<nav aria-label="Sezioni" className="flex flex-1 gap-1 md:flex-none md:flex-col">
+				<nav
+					aria-label="Sezioni"
+					className="flex flex-1 gap-0.5 overflow-x-auto [scrollbar-width:none] md:flex-none md:flex-col md:gap-1 md:overflow-visible"
+				>
 					{VOCI.map(({ href, nome, icona: Icona }) => {
-						const attiva = href === "/" ? pathname === "/" : pathname.startsWith(href);
+						const attiva = pathname !== null && (href === "/" ? pathname === "/" : pathname.startsWith(href));
 						return (
 							<Link
 								key={href}
 								href={href}
 								aria-current={attiva ? "page" : undefined}
-								className={`relative flex flex-1 flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition-colors
+								className={`relative flex min-w-[4.25rem] flex-1 shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors md:min-w-0 md:px-3
 									md:flex-none md:flex-row md:gap-3 md:py-2.5 md:text-sm
 									${attiva ? "text-accent-strong" : "text-ink-2 hover:text-ink"}`}
 							>
@@ -96,6 +113,16 @@ function IconaAbbonamenti({ className }: { className?: string }) {
 		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
 			<path d="M3.5 8.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1.6a1.9 1.9 0 0 0 0 3.8v1.6a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1.6a1.9 1.9 0 0 0 0-3.8Z" />
 			<path d="M14.5 6.8v10.4" strokeDasharray="1.6 2.2" />
+		</svg>
+	);
+}
+
+function IconaContatti({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
+			<rect x="4" y="3.5" width="16" height="17" rx="2.5" />
+			<circle cx="12" cy="10" r="2.8" />
+			<path d="M7.8 17c.6-2 2.2-3.2 4.2-3.2s3.6 1.2 4.2 3.2" />
 		</svg>
 	);
 }

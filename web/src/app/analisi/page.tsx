@@ -16,6 +16,7 @@ import { RIGHE_PER_PAGINA, elencoViste, leggiAnalisi, leggiOpzioni, oggiARoma } 
 import { dataBreve, euro, frase, intero, nomeCompleto } from "@/lib/format";
 import { eliminaVista } from "./actions";
 import { FiltriAnalisi } from "./filtri";
+import { NomePersona } from "@/components/nome-persona";
 
 export const metadata: Metadata = { title: "Analisi" };
 
@@ -366,7 +367,7 @@ async function Contenuto({ searchParams }: { searchParams: PageProps<"/analisi">
 									{elenco.righe.map((v, i) => (
 										<tr key={`${v.vendita}-${i}`} className="border-b border-line last:border-0 hover:bg-surface-2/60">
 											<td className="whitespace-nowrap px-3 py-2.5 tabular-nums">{v.vendita ? dataBreve(v.vendita) : "—"}</td>
-											<td className="px-3 py-2.5">{nomeCompleto(v.nome, v.cognome)}</td>
+											<td className="px-3 py-2.5"><NomePersona id={v.persona_id} nome={v.nome} cognome={v.cognome} /></td>
 											<td className="px-3 py-2.5">
 												<span className="block">{frase(v.abbonamento) || "Abbonamento"}</span>
 												<span className="block text-xs text-ink-3">

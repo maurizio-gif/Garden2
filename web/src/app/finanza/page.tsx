@@ -12,8 +12,9 @@ import { RankedBars } from "@/components/ranked-bars";
 import { ScheletroLista } from "@/components/scheletri";
 import { StatoDati } from "@/components/stato-dati";
 import { leggiFinanza } from "@/lib/data";
-import { dataBreve, euro, intero, meseCorto, meseLungo, nomeCompleto } from "@/lib/format";
+import { dataBreve, euro, intero, meseCorto, meseLungo } from "@/lib/format";
 import type { PeriodoFin } from "@/lib/types";
+import { NomePersona } from "@/components/nome-persona";
 
 export const metadata: Metadata = { title: "Finanza" };
 
@@ -471,7 +472,7 @@ async function Contenuto() {
 								{d.crediti.debitori.map((p, i) => (
 									<tr key={i} className="border-b border-line last:border-0">
 										<th scope="row" className="px-3 py-2.5 text-left font-normal">
-											{nomeCompleto(p.nome, p.cognome)}
+											<NomePersona id={p.persona_id} nome={p.nome} cognome={p.cognome} />
 										</th>
 										<td className="px-3 py-2.5 text-right tabular-nums">{p.rate}</td>
 										<td className="px-3 py-2.5 text-right tabular-nums text-ink-2">{dataBreve(p.piu_vecchia)}</td>

@@ -22,6 +22,8 @@ import {
 import {
 	accessiDashboardDemo,
 	accessiMensileDemo,
+	contattiDemo,
+	personaDemo,
 	analisiIncassiDemo,
 	direzionaleDemo,
 	elencoMovimentiDemo,
@@ -29,6 +31,7 @@ import {
 	opzioniIncassiDemo,
 	scadenzeDemo,
 } from "./demo-direzionale";
+import { filtriContattiPerRpc, type FiltriContatti } from "./contatti";
 import {
 	filtriIncassiPerRpc,
 	leggiFiltriIncassi,
@@ -49,6 +52,8 @@ import type {
 	AnalisiIncassi,
 	DashboardAccessi,
 	Direzionale,
+	ElencoContatti,
+	SchedaPersona,
 	ElencoMovimenti,
 	ElencoScadenze,
 	OpzioniIncassi,
@@ -420,4 +425,28 @@ export async function leggiAccessiMensile(): Promise<Letto<AccessiMensile>> {
 	const adesso = Date.now();
 	if (!configurazione()) return { dati: accessiMensileDemo(new Date(adesso)), modo: "demo", adesso };
 	return { dati: await rpc<AccessiMensile>("dashboard_accessi_mensile"), modo: "reale", adesso };
+}
+
+// ── Contatti e scheda cliente (supabase/migrations/20261117090000_contatti.sql)
+
+/** L'elenco dei contatti filtrato; `tutte` per l'esportazione (fino a 20.000). */
+export async function leggiContatti(f: FiltriContatti, tutte = false): Promise<Letto<ElencoContatti>> {
+	await connection();
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: contattiDemo(), modo: "demo", adesso };
+	const dati = await rpc<ElencoContatti>("dashboard_contatti", {
+		p_filtri: filtriContattiPerRpc(f),
+		p_limite: tutte ? 20_000 : RIGHE_PER_PAGINA,
+		p_salta: tutte ? 0 : (f.pagina - 1) * RIGHE_PER_PAGINA,
+		p_ordine: f.ordine,
+	});
+	return { dati, modo: "reale", adesso };
+}
+
+/** Tutto quello che c'è su una persona; null se l'id non esiste. */
+export async function leggiPersona(id: string): Promise<Letto<SchedaPersona | null>> {
+	await connection();
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: personaDemo(id), modo: "demo", adesso };
+	return { dati: await rpc<SchedaPersona | null>("dashboard_persona", { p_id: id }), modo: "reale", adesso };
 }

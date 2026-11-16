@@ -12,6 +12,7 @@ import { RIGHE_PER_PAGINA, leggiElencoScadenze, leggiOpzioni, leggiScadenze } fr
 import { dataBreve, euro, frase, intero, meseCorto, meseLungo, nomeCompleto } from "@/lib/format";
 import { leggiFiltriScadenze, meseDa, perMese, queryScadenze, tassoRinnovi, type FiltriElencoScadenze } from "@/lib/scadenze";
 import type { ElencoScadenze } from "@/lib/types";
+import { NomePersona } from "@/components/nome-persona";
 
 export const metadata: Metadata = { title: "Scadenze e rinnovi" };
 
@@ -299,7 +300,7 @@ function Elenco({ f, elenco }: { f: FiltriElencoScadenze; elenco: ElencoScadenze
 								<tr key={`${r.data_fine}-${r.cognome}-${i}`} className="border-b border-line last:border-0 hover:bg-surface-2/60">
 									<td className="whitespace-nowrap px-3 py-2.5 tabular-nums">{dataBreve(r.data_fine)}</td>
 									<td className="px-3 py-2.5">
-										<span className="block font-medium">{nomeCompleto(r.nome, r.cognome)}</span>
+										<NomePersona id={r.persona_id} nome={r.nome} cognome={r.cognome} className="block font-medium" />
 										{r.cellulare && (
 											<a href={`tel:${r.cellulare.replace(/[^\d+]/g, "")}`} className="block text-xs text-ink-3 hover:text-accent-strong">
 												{r.cellulare}

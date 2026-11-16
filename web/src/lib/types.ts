@@ -3,6 +3,8 @@
 
 export type Vendita = {
 	quando: string;
+	/** Scheda della persona (/contatti/<id>); null se la vendita non ha una persona. */
+	persona_id?: string | null;
 	nome: string | null;
 	cognome: string | null;
 	abbonamento: string | null;
@@ -35,6 +37,7 @@ export type AccessiRecenti = {
 	ultimo_accesso: string | null;
 	accessi: {
 		quando: string;
+		persona_id?: string | null;
 		nome: string | null;
 		cognome: string | null;
 		servizio: string | null;
@@ -55,6 +58,7 @@ export type Analisi = {
 
 export type VenditaDettaglio = {
 	vendita: string | null;
+	persona_id?: string | null;
 	inizio: string | null;
 	fine: string | null;
 	nome: string | null;
@@ -121,7 +125,7 @@ export type Finanza = {
 		per_metodo: { metodo: string; n: number; importo: number }[];
 		/** Credito scaduto da meno di 90 giorni nello stesso giorno degli anni scorsi. */
 		storico: { anni_fa: number; giorno: string; n: number; importo: number }[];
-		debitori: { nome: string | null; cognome: string | null; importo: number; rate: number; piu_vecchia: string }[];
+		debitori: { persona_id?: string | null; nome: string | null; cognome: string | null; importo: number; rate: number; piu_vecchia: string }[];
 	};
 };
 
@@ -188,6 +192,7 @@ export type MeseScadenze = {
 export type Scadenze = { oggi: string; aggiornato_al: string | null; mesi: MeseScadenze[] };
 
 export type RigaScadenza = {
+	persona_id?: string | null;
 	abbonamento: string | null;
 	data_inizio: string;
 	data_fine: string;
@@ -222,6 +227,7 @@ export type AnalisiIncassi = {
 
 export type Movimento = {
 	quando: string;
+	persona_id?: string | null;
 	importo: number;
 	tipologia: string;
 	metodo: string;
@@ -268,9 +274,116 @@ export type DashboardAccessi = {
 	rifiuti: { motivo: string; n: number }[];
 	abbonamenti: { abbonamento: string; gruppo: string; presenze: number; persone: number; settimane_persona: number }[];
 	gruppi: { gruppo: string; presenze: number; persone: number; settimane_persona: number }[];
-	utenti: { nome: string | null; cognome: string | null; presenze: number; settimane: number; ingressi: number }[];
+	utenti: { persona_id?: string | null; nome: string | null; cognome: string | null; presenze: number; settimane: number; ingressi: number }[];
 };
 
 export type AccessiMensile = {
 	mesi: { mese: string; presenze: number; ingressi: number; persone: number; settimane_persona: number }[];
+};
+
+// ── Contatti e scheda cliente (supabase/migrations/20261117090000_contatti.sql)
+
+export type StatoContatto = "attivo" | "in_scadenza" | "in_partenza" | "scaduto" | "ex" | "mai";
+
+export type RigaContatto = {
+	id: string;
+	nome: string | null;
+	cognome: string | null;
+	cellulare: string | null;
+	email: string | null;
+	eta: number | null;
+	stato: StatoContatto;
+	/** Ultimo abbonamento: quello con la fine più lontana. */
+	abbonamento: string | null;
+	gruppo: string | null;
+	cliente_dal: string | null;
+	ultima_fine: string | null;
+	prodotti: number;
+	rate_scadute: boolean;
+	ultimo_accesso: string | null;
+};
+
+export type ElencoContatti = {
+	totale: number;
+	/** Conteggi per stato con tutti i filtri tranne lo stato. */
+	per_stato: Partial<Record<StatoContatto, number>> | null;
+	righe: RigaContatto[];
+};
+
+export type SchedaPersona = {
+	oggi: string;
+	persona: {
+		id: string;
+		nome: string | null;
+		cognome: string | null;
+		email: string | null;
+		cellulare: string | null;
+		telefono_1: string | null;
+		telefono_2: string | null;
+		codice_fiscale: string | null;
+		data_nascita: string | null;
+		sesso: string | null;
+		luogo_nascita: string | null;
+		indirizzo: string | null;
+		cap: string | null;
+		citta: string | null;
+		provincia: string | null;
+		note: string | null;
+		creato_il: string | null;
+		source_utente_id: number | null;
+		conflitto_con: string | null;
+	};
+	riepilogo: {
+		venduto: number;
+		incassato: number;
+		da_pagare_scaduto: number;
+		da_pagare_futuro: number;
+		presenze: number;
+		presenze_12m: number;
+		settimane_12m: number;
+		prima_presenza: string | null;
+		ultima_presenza: string | null;
+	};
+	abbonamenti: {
+		source_iscrizione_id: number;
+		abbonamento: string | null;
+		gruppo: string;
+		categoria: string | null;
+		quota: boolean;
+		venduto_il: string | null;
+		inizio: string | null;
+		fine: string | null;
+		totale: number | null;
+		listino: number | null;
+		venditore: string | null;
+		disdetta: string | null;
+		motivo_disdetta: string | null;
+		giorni_sospensione: number | null;
+		rinnovo_automatico: boolean | null;
+		note: string | null;
+	}[];
+	rate: { scadenza: string; importo: number; pagata_il: string | null; metodo: string | null; abbonamento: string | null; errore: string | null }[];
+	sospensioni: { inizio: string; fine: string; giorni: number | null; causale: string | null; abbonamento: string | null }[];
+	pagamenti: {
+		quando: string;
+		importo: number;
+		metodo: string | null;
+		descrizione: string | null;
+		causale: string | null;
+		operatore: string | null;
+		tipo: string | null;
+	}[];
+	pagamenti_totale: number;
+	presenze_mesi: { mese: string; presenze: number }[];
+	presenze_dow: { dow: number; presenze: number }[];
+	accessi: { quando: string; varco: string | null; esito: string | null; tipo: number | null }[];
+	certificati: { descrizione: string | null; emesso: string | null; scadenza: string | null }[];
+	quote: { inizio: string | null; fine: string | null; importo: number | null }[];
+	prenotazioni: { quando: string; cosa: string | null; totale: number | null; operatore: string | null }[];
+	prenotazioni_totale: number;
+	corsi: { inizio: string | null; fine: string | null; importo: number | null; lezioni: number | null; terminato: boolean | null }[];
+	omaggi: { inizio: string | null; fine: string | null; totali: number | null; usati: number | null }[];
+	pratiche: { creata: string; descrizione: string | null; stato: string | null; cambio_stato: string | null; chiusa: string | null; valore: number | null }[];
+	memo: { quando: string | null; oggetto: string | null; testo: string | null }[];
+	email: { quando: string; oggetto: string | null; inviata: string | null; errore: string | null }[];
 };

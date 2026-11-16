@@ -4,6 +4,8 @@ import type {
 	AccessiMensile,
 	AnalisiIncassi,
 	DashboardAccessi,
+	ElencoContatti,
+	SchedaPersona,
 	Direzionale,
 	ElencoMovimenti,
 	ElencoScadenze,
@@ -269,4 +271,89 @@ export function accessiMensileDemo(adesso: Date): AccessiMensile {
 		mesi.push({ mese: d.toISOString().slice(0, 10), presenze, ingressi: Math.round(presenze * 1.07), persone: Math.round(3800 * s), settimane_persona: Math.round(presenze / (2 + 0.2 * Math.sin(k))) });
 	}
 	return { mesi };
+}
+
+const ID_DEMO = "00000000-0000-4000-8000-0000000000";
+
+export function contattiDemo(): ElencoContatti {
+	const stati = ["attivo", "attivo", "in_scadenza", "scaduto", "ex", "attivo"] as const;
+	const righe = NOMI.map(([nome, cognome, abbonamento, gruppo], i) => ({
+		id: `${ID_DEMO}${String(i + 10).padStart(2, "0")}`,
+		nome,
+		cognome,
+		cellulare: "333 000 0000",
+		email: null,
+		eta: 28 + i * 5,
+		stato: stati[i],
+		abbonamento,
+		gruppo,
+		cliente_dal: "2021-09-01",
+		ultima_fine: "2027-06-30",
+		prodotti: 3 + i,
+		rate_scadute: i === 3,
+		ultimo_accesso: "2026-11-14",
+	}));
+	return { totale: righe.length, per_stato: { attivo: 3, in_scadenza: 1, scaduto: 1, ex: 1, mai: 12 }, righe };
+}
+
+export function personaDemo(id: string): SchedaPersona {
+	const oggi = new Date().toISOString().slice(0, 10);
+	return {
+		oggi,
+		persona: {
+			id,
+			nome: "Giulia",
+			cognome: "Bianchi",
+			email: "giulia@example.com",
+			cellulare: "333 000 0000",
+			telefono_1: null,
+			telefono_2: null,
+			codice_fiscale: null,
+			data_nascita: "1990-04-12",
+			sesso: "F",
+			luogo_nascita: "Milano",
+			indirizzo: "Via dei Prati 1",
+			cap: "20100",
+			citta: "Milano",
+			provincia: "MI",
+			note: null,
+			creato_il: "2021-09-01T10:00:00Z",
+			source_utente_id: 1,
+			conflitto_con: null,
+		},
+		riepilogo: { venduto: 2380, incassato: 2210, da_pagare_scaduto: 70, da_pagare_futuro: 140, presenze: 412, presenze_12m: 118, settimane_12m: 49, prima_presenza: "2021-09-02", ultima_presenza: oggi },
+		abbonamenti: [
+			{ source_iscrizione_id: 3, abbonamento: "Fitness open annuale", gruppo: "Fitness e wellness", categoria: "FITNESS", quota: false, venduto_il: "2026-08-28T10:00:00Z", inizio: "2026-09-01", fine: "2027-08-31", totale: 690, listino: 720, venditore: "Ufficio commerciale", disdetta: null, motivo_disdetta: null, giorni_sospensione: 0, rinnovo_automatico: false, note: null },
+			{ source_iscrizione_id: 2, abbonamento: "Fitness open annuale", gruppo: "Fitness e wellness", categoria: "FITNESS", quota: false, venduto_il: "2025-08-30T10:00:00Z", inizio: "2025-09-01", fine: "2026-08-31", totale: 650, listino: 690, venditore: "Reception", disdetta: null, motivo_disdetta: null, giorni_sospensione: 14, rinnovo_automatico: false, note: null },
+			{ source_iscrizione_id: 1, abbonamento: "Quota associativa", gruppo: "Quote e tessere", categoria: "QUOTA ASSOCIATIVA", quota: true, venduto_il: "2025-08-30T10:00:00Z", inizio: "2025-09-01", fine: "2026-08-31", totale: 39, listino: 39, venditore: "Reception", disdetta: null, motivo_disdetta: null, giorni_sospensione: 0, rinnovo_automatico: false, note: null },
+		],
+		rate: [
+			{ scadenza: "2026-12-01", importo: 70, pagata_il: null, metodo: "RID", abbonamento: "Fitness open annuale", errore: null },
+			{ scadenza: "2026-11-01", importo: 70, pagata_il: null, metodo: "RID", abbonamento: "Fitness open annuale", errore: "Insoluto" },
+			{ scadenza: "2026-10-01", importo: 70, pagata_il: "2026-10-01T08:00:00Z", metodo: "RID", abbonamento: "Fitness open annuale", errore: null },
+		],
+		sospensioni: [{ inizio: "2026-02-01", fine: "2026-02-14", giorni: 14, causale: "Infortunio", abbonamento: "Fitness open annuale" }],
+		pagamenti: [
+			{ quando: "2026-10-01T08:00:00Z", importo: 70, metodo: "RID", descrizione: "Pagamento rata", causale: null, operatore: "Online", tipo: "A" },
+			{ quando: "2026-08-28T10:00:00Z", importo: 200, metodo: "Bancomat", descrizione: "Acconto abbonamento", causale: null, operatore: "Reception", tipo: "A" },
+		],
+		pagamenti_totale: 2,
+		presenze_mesi: Array.from({ length: 24 }, (_, i) => {
+			const d = new Date();
+			d.setUTCDate(1);
+			d.setUTCMonth(d.getUTCMonth() - 23 + i);
+			return { mese: d.toISOString().slice(0, 10), presenze: 6 + ((i * 7) % 9) };
+		}),
+		presenze_dow: [1, 2, 3, 4, 5, 6, 7].map((dow) => ({ dow, presenze: dow < 6 ? 20 - dow : 4 })),
+		accessi: Array.from({ length: 8 }, (_, i) => ({ quando: new Date(Date.now() - i * 2 * 86_400_000).toISOString(), varco: "Ingresso Femmine", esito: "Abbonamento", tipo: 3 })),
+		certificati: [{ descrizione: "Certificato non agonistico", emesso: "2026-01-10", scadenza: "2027-01-10" }],
+		quote: [{ inizio: "2025-09-01", fine: "2026-08-31", importo: 39 }],
+		prenotazioni: [],
+		prenotazioni_totale: 0,
+		corsi: [],
+		omaggi: [],
+		pratiche: [{ creata: "2026-08-20T10:00:00Z", descrizione: "Rinnovo", stato: "Chiusa vinta", cambio_stato: "2026-08-28T10:00:00Z", chiusa: "2026-08-28T10:00:00Z", valore: 690 }],
+		memo: [],
+		email: [],
+	};
 }

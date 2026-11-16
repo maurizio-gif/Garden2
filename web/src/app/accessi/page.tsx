@@ -14,8 +14,9 @@ import { ScheletroLista } from "@/components/scheletri";
 import { StatoDati } from "@/components/stato-dati";
 import { PRESET, aggiungiAnni, dataValida, periodoDaPreset, type Preset } from "@/lib/analisi";
 import { leggiAccessi, leggiAccessiMensile, leggiDashboardAccessi, oggiARoma } from "@/lib/data";
-import { dataBreve, frase, intero, meseCorto, meseLungo, nomeCompleto } from "@/lib/format";
+import { dataBreve, frase, intero, meseCorto, meseLungo } from "@/lib/format";
 import type { DashboardAccessi } from "@/lib/types";
+import { NomePersona } from "@/components/nome-persona";
 
 export const metadata: Metadata = { title: "Accessi" };
 
@@ -344,7 +345,7 @@ async function Contenuto({ searchParams }: { searchParams: Promise<Cerca> }) {
 							{d.utenti.map((u, i) => (
 								<tr key={`${u.cognome}-${u.nome}-${i}`} className="border-b border-line last:border-0 hover:bg-surface-2/60">
 									<td className="px-3 py-2.5 tabular-nums text-ink-3">{i + 1}</td>
-									<td className="px-3 py-2.5 font-medium">{nomeCompleto(u.nome, u.cognome)}</td>
+									<td className="px-3 py-2.5 font-medium"><NomePersona id={u.persona_id} nome={u.nome} cognome={u.cognome} /></td>
 									<td className="px-3 py-2.5 text-right tabular-nums">{intero.format(u.presenze)}</td>
 									<td className="px-3 py-2.5 text-right tabular-nums text-ink-2">{intero.format(u.settimane)}</td>
 									<td className="px-3 py-2.5 text-right font-medium tabular-nums">{decimale.format(frequenza(u.presenze, u.settimane))}</td>

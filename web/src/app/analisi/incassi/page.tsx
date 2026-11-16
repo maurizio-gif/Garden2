@@ -22,6 +22,7 @@ import {
 	type FiltriIncassi,
 } from "@/lib/incassi";
 import type { AnalisiIncassi, OpzioniIncassi, RigaIncassi } from "@/lib/types";
+import { NomePersona } from "@/components/nome-persona";
 
 export const metadata: Metadata = { title: "Analisi incassi" };
 
@@ -337,7 +338,7 @@ async function Contenuto({ searchParams }: { searchParams: Promise<Cerca> }) {
 									{elenco.righe.map((m, i) => (
 										<tr key={`${m.quando}-${i}`} className="border-b border-line last:border-0 hover:bg-surface-2/60">
 											<td className="whitespace-nowrap px-3 py-2.5 tabular-nums">{dataOra(m.quando)}</td>
-											<td className="px-3 py-2.5">{m.nome || m.cognome ? nomeCompleto(m.nome, m.cognome) : "—"}</td>
+											<td className="px-3 py-2.5">{m.nome || m.cognome ? <NomePersona id={m.persona_id} nome={m.nome} cognome={m.cognome} /> : "—"}</td>
 											<td className="px-3 py-2.5">
 												<span className="block">{frase(m.abbonamento ?? m.descrizione) || m.tipologia}</span>
 												<span className="block text-xs text-ink-3">{[m.tipologia, m.causale ? frase(m.causale) : null].filter(Boolean).join(" · ")}</span>
