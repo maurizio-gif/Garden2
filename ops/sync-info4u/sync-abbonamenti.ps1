@@ -24,6 +24,13 @@
     parametro lo script salta vendite, cassa, rate e modifiche: serve a provare
     una tabella nuova da sola, a mano, prima di lasciarla al task schedulato.
 
+.PARAMETER Extra
+    Esegue solo i "dati aggiuntivi" (CRM, email, certificati, prenotazioni,
+    ricevute, accessi...), tutti, e niente altro. Va schedulato a parte, di
+    notte (vedi README): cosi' una tabella lenta non blocca piu' il giro da 5
+    minuti di vendite, cassa e rate. Si ferma da solo dopo ExtraMaxMinuti
+    (default 50) e il giro dopo riprende da dove era arrivato.
+
 .PARAMETER RiparaOmonimi
     Una tantum, a mano: ricrea la scheda degli IDUtente che hanno righe
     (vendite, certificati, email...) agganciate alla scheda di un omonimo e
@@ -37,6 +44,7 @@
 param(
     [string]$ConfigPath = (Join-Path $PSScriptRoot "config.json"),
     [string[]]$SoloExtra = @(),
+    [switch]$Extra,
     [switch]$RiparaOmonimi
 )
 
@@ -112,6 +120,15 @@ if (-not (Test-Path $ConfigPath)) {
 }
 $config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 
+# Tempi massimi: senza, una chiamata a Supabase o una query su dbgym che non
+# risponde tiene il processo appeso per ore, e con «non avviare una nuova
+# istanza» il task da 5 minuti resta fermo dietro di lui (e' successo dall'11
+# al 16 novembre 2026). Scaduto il tempo la chiamata va in errore, si logga e
+# il giro dopo riprova.
+$timeoutHttpSecondi = if ($config.TimeoutHttpSecondi) { [int]$config.TimeoutHttpSecondi } else { 120 }
+$timeoutSqlSecondi = if ($config.TimeoutSqlSecondi) { [int]$config.TimeoutSqlSecondi } else { 300 }
+$PSDefaultParameterValues["Invoke-RestMethod:TimeoutSec"] = $timeoutHttpSecondi
+
 $batchSize = if ($config.BatchSize) { [int]$config.BatchSize } else { 500 }
 $maxBatches = if ($config.MaxBatchesPerRun) { [int]$config.MaxBatchesPerRun } else { 20 }
 
@@ -165,7 +182,7 @@ $supabaseHeaders = @{
 
 # ────────────────────────────────────────────────────── connessione SQL
 
-$connectionString = "Server=$($config.SqlServer.Server),$($config.SqlServer.Port);Database=$($config.SqlServer.Database);User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);TrustServerCertificate=True;"
+$connectionString = "Server=$($config.SqlServer.Server),$($config.SqlServer.Port);Database=$($config.SqlServer.Database);User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);TrustServerCertificate=True;Connect Timeout=30;"
 
 # ──────────────────────────────────────────────────────────── watermark
 
@@ -586,6 +603,7 @@ function Invoke-QueryDbgym {
         $connessione.Open()
         $comando = $connessione.CreateCommand()
         $comando.CommandText = $CommandText
+        $comando.CommandTimeout = $timeoutSqlSecondi
         foreach ($nome in $Parametri.Keys) {
             $comando.Parameters.AddWithValue($nome, $Parametri[$nome]) | Out-Null
         }
@@ -1418,7 +1436,11 @@ function Sync-ModificheAbbonamenti {
 #     le righe che possono essere cambiate dopo la creazione (un esito, una
 #     rata pagata, un invio andato a buon fine).
 #   Anagrafica: tabelle piccole di decodifica (tipi, esiti, operatori...),
-#     riscritte per intero ogni $extraAnagraficheOgniOre ore.
+#     riscritte per intero ogni $extraAnagraficheOgniOre ore, in una lettura.
+#   Riscrittura: come Anagrafica, ma per tabelle grandi (crm_pratiche, ~700.000
+#     righe): a blocchi in ordine di chiave, col cursore salvato su Supabase
+#     dopo ogni blocco, al piu' MaxBatches blocchi per giro. Leggerle in una
+#     volta sola teneva il processo per ore con 3-4 GB di memoria.
 #
 # Una tabella che fallisce (una colonna rinominata, un errore di rete) non
 # ferma le altre: l'errore si logga e a fine giro lo script esce con errore.
@@ -1434,6 +1456,18 @@ $extraMaxBatches = if ($config.ExtraMaxBatches) { [int]$config.ExtraMaxBatches }
 $extraAnagraficheOgniOre = if ($config.ExtraAnagraficheOgniOre) { [double]$config.ExtraAnagraficheOgniOre } else { 6 }
 $extraRefreshOgniOre = if ($config.ExtraRefreshOgniOre) { [double]$config.ExtraRefreshOgniOre } else { 6 }
 $extraRefreshGiorniIndietro = if ($config.ExtraRefreshGiorniIndietro) { [int]$config.ExtraRefreshGiorniIndietro } else { 60 }
+# Le tabelle grandi da riscrivere per intero (Modo = "Riscrittura") si rifanno
+# al piu' ogni $extraRiscritturaOgniOre ore, a blocchi, riprendendo dal
+# cursore salvato se il giro prima si e' fermato a meta'.
+$extraRiscritturaOgniOre = if ($config.ExtraRiscritturaOgniOre) { [double]$config.ExtraRiscritturaOgniOre } else { 24 }
+# Un giro di dati aggiuntivi non parte con una tabella nuova dopo questi
+# minuti: quello che manca lo fa il giro dopo (watermark e cursori sono su
+# Supabase). Tiene il task notturno lontano dall'ora dopo.
+$extraMaxMinuti = if ($config.ExtraMaxMinuti) { [double]$config.ExtraMaxMinuti } else { 50 }
+# Nel giro da 5 minuti, di default, dei dati aggiuntivi si fanno solo le
+# persone senza acquisti (veloci): il resto va nel task con -Extra. Per
+# tornare al comportamento di prima (tutto nello stesso giro): ExtraNelGiro = true.
+$extraNelGiro = if ($null -ne $config.ExtraNelGiro) { [bool]$config.ExtraNelGiro } else { $false }
 
 # Le colonne datetime di SQL Server arrivano a Supabase come istanti (timestamptz);
 # quelle che sono solo una data si convertono qui in testo yyyy-MM-dd:
@@ -1495,8 +1529,9 @@ $defsExtra = @(
     # 2022. Quindi non si filtra solo per data di creazione: si copiano anche
     # le pratiche toccate dal 2023 (stato, chiusura) o con almeno un'azione
     # dal 2023. Un watermark sull'ID non basterebbe (le pratiche vecchie hanno
-    # ID bassi): si riscrivono tutte, a blocchi, come le tabelle di decodifica.
-    @{ Nome = "crm_pratiche"; Tabella = "crm_pratiche"; Modo = "Anagrafica"; ChiaveCol = "source_pratica_id"
+    # ID bassi): si riscrivono tutte, a blocchi da 2000 con ripresa (Modo
+    # Riscrittura), al piu' una volta ogni $extraRiscritturaOgniOre ore.
+    @{ Nome = "crm_pratiche"; Tabella = "crm_pratiche"; Modo = "Riscrittura"; ChiaveCol = "source_pratica_id"; IdSql = "c.IDAppuntamentoCategoriaUtente"; BatchSize = 2000; MaxBatches = 40
        Select = "c.IDAppuntamentoCategoriaUtente AS source_pratica_id, c.IDAppuntamentoCategoria AS source_categoria_id, LEFT(c.Descrizione, 200) AS descrizione, c.IDUtente AS source_utente_id, c.DataCreazione AS data_creazione, c.IDStatoCommerciale AS source_stato_id, c.DataStato AS data_stato, c.DataChiusura AS data_chiusura, c.Valore AS valore"
        From = "dbo.AppuntamentiCategorieUtenti c"
        Dal = "(c.DataCreazione >= @Dal OR c.DataStato >= @Dal OR c.DataChiusura >= @Dal OR EXISTS (SELECT 1 FROM dbo.AppuntamentiStorico a WHERE a.IDAppuntamentoCategoriaUtente = c.IDAppuntamentoCategoriaUtente AND a.DataAppuntamento >= @Dal))" },
@@ -1590,6 +1625,35 @@ function Get-StatoExtra {
 function Set-StatoExtra {
     param([string]$Chiave, [datetime]$Quando)
     $corpo = @{ chiave = $Chiave; valore = $Quando.ToString("o") } | ConvertTo-Json
+    $headers = $supabaseHeaders.Clone()
+    $headers["Prefer"] = "resolution=merge-duplicates"
+    Invoke-SupabaseScrittura -Uri "$($config.Supabase.Url)/rest/v1/sync_info4u_stato?on_conflict=chiave" `
+        -Headers $headers -Method Post -Corpo $corpo | Out-Null
+}
+
+# Stato di una riscrittura a blocchi: Valore = fine dell'ultimo giro completo,
+# Cursore = ultima chiave scritta del giro in corso (null = nessun giro in corso).
+function Get-StatoRiscrittura {
+    param([string]$Chiave)
+    $url = "$($config.Supabase.Url)/rest/v1/sync_info4u_stato?chiave=eq.$Chiave&select=valore,cursore"
+    $risposta = Invoke-RestMethod -Uri $url -Headers $supabaseHeaders -Method Get
+    if ($risposta.Count -gt 0) {
+        return @{
+            Valore  = [datetime]$risposta[0].valore
+            Cursore = if ($null -ne $risposta[0].cursore) { [int64]$risposta[0].cursore } else { $null }
+        }
+    }
+    return @{ Valore = $null; Cursore = $null }
+}
+
+function Set-StatoRiscrittura {
+    param([string]$Chiave, [datetime]$Valore, $Cursore)
+    $corpo = @{
+        chiave        = $Chiave
+        valore        = $Valore.ToString("o")
+        cursore       = $Cursore
+        aggiornato_il = (Get-Date).ToString("o")
+    } | ConvertTo-Json
     $headers = $supabaseHeaders.Clone()
     $headers["Prefer"] = "resolution=merge-duplicates"
     Invoke-SupabaseScrittura -Uri "$($config.Supabase.Url)/rest/v1/sync_info4u_stato?on_conflict=chiave" `
@@ -1754,7 +1818,10 @@ function Sync-DefExtra {
 
     # Tabelle piccole: si riscrivono per intero, ogni $extraAnagraficheOgniOre ore.
     if ($Def.Modo -eq "Anagrafica") {
-        if (-not (Test-ScadutoExtra "extra_anagrafica_$nome" $extraAnagraficheOgniOre)) { return }
+        if (-not (Test-ScadutoExtra "extra_anagrafica_$nome" $extraAnagraficheOgniOre)) {
+            Write-Log "${nome}: riscritta da meno di $extraAnagraficheOgniOre ore, salto."
+            return
+        }
 
         $comandoText = "SELECT $($Def.Select)`nFROM $($Def.From)`nWHERE $condizioneDal"
         $righe = Invoke-QueryDbgym -CommandText $comandoText -Parametri @{ "@Dal" = $extraDal }
@@ -1764,6 +1831,47 @@ function Sync-DefExtra {
         }
         Set-StatoExtra "extra_anagrafica_$nome" (Get-Date)
         Write-Log "${nome}: $($righe.Count) righe riscritte."
+        return
+    }
+
+    # Tabelle grandi riscritte per intero, a blocchi e con ripresa.
+    if ($Def.Modo -eq "Riscrittura") {
+        $chiaveStato = "extra_riscrittura_$nome"
+        $stato = Get-StatoRiscrittura $chiaveStato
+        if ($null -eq $stato.Cursore) {
+            if ($stato.Valore -and (New-TimeSpan -Start $stato.Valore -End (Get-Date)).TotalHours -lt $extraRiscritturaOgniOre) {
+                Write-Log "${nome}: riscrittura completa gia' fatta il $($stato.Valore.ToString('yyyy-MM-dd HH:mm')), salto."
+                return
+            }
+            $cursore = [int64]0
+        } else {
+            $cursore = $stato.Cursore
+        }
+        # Valore resta quello dell'ultimo giro completo finche' questo non finisce.
+        $ultimoCompleto = if ($stato.Valore) { $stato.Valore } else { [datetime]"2000-01-01" }
+        Write-Log "${nome}: riscrittura a blocchi da $($Def.ChiaveCol) > $cursore."
+
+        $copiate = 0
+        $finito = $false
+        for ($blocco = 1; $blocco -le $maxBlocchi; $blocco++) {
+            $comandoText = "SELECT TOP ($dimensioneBlocco) $($Def.Select)`nFROM $($Def.From)`nWHERE $($Def.IdSql) > @LastId AND ($condizioneDal)`nORDER BY $($Def.IdSql) ASC"
+            $righe = Invoke-QueryDbgym -CommandText $comandoText -Parametri @{ "@LastId" = $cursore; "@Dal" = $extraDal }
+            if ($righe.Count -gt 0) {
+                Send-RigheExtra -Def $Def -Righe $righe
+                $cursore = [int64]$righe[$righe.Count - 1].($Def.ChiaveCol)
+                $copiate += $righe.Count
+                Set-StatoRiscrittura $chiaveStato $ultimoCompleto $cursore
+                Write-Log "${nome}, blocco ${blocco}: $($righe.Count) righe, cursore ora a $cursore."
+            }
+            if ($righe.Count -lt $dimensioneBlocco) { $finito = $true; break }
+        }
+
+        if ($finito) {
+            Set-StatoRiscrittura $chiaveStato (Get-Date) $null
+            Write-Log "${nome}: riscrittura completata ($copiate righe in questo giro)."
+        } else {
+            Write-Log "${nome}: $copiate righe in questo giro, prosegue al prossimo da $($Def.ChiaveCol) > $cursore."
+        }
         return
     }
 
@@ -1793,14 +1901,31 @@ function Sync-DefExtra {
     if ($refresh.AllaFine) { Set-StatoExtra "extra_refresh_$nome" (Get-Date) }
 }
 
+# $Nomi: solo queste tabelle (vuoto = tutte). $SenzaPersone: tutte tranne le
+# persone senza acquisti, che restano al giro da 5 minuti (due processi che
+# creano persone insieme potrebbero fare doppioni).
 function Sync-Extra {
-    if (-not $extraAttivo) { return }
+    param([string[]]$Nomi = @(), [switch]$SenzaPersone)
+    if (-not $extraAttivo) {
+        Write-Log "Dati aggiuntivi spenti (ExtraAttivo = false nel config)."
+        return
+    }
 
+    $inizioGiro = Get-Date
     $errori = @()
     foreach ($def in $defsExtra) {
-        if ($SoloExtra.Count -gt 0 -and $SoloExtra -notcontains $def.Nome) { continue }
+        if ($Nomi.Count -gt 0 -and $Nomi -notcontains $def.Nome) { continue }
+        if ($SenzaPersone -and $def.Modo -eq "Persone") { continue }
+        $minuti = (New-TimeSpan -Start $inizioGiro -End (Get-Date)).TotalMinutes
+        if ($minuti -ge $extraMaxMinuti) {
+            Write-Log "Dati aggiuntivi: passati $([math]::Round($minuti)) minuti (limite $extraMaxMinuti), il resto al prossimo giro." "WARN"
+            break
+        }
+        $inizioTabella = Get-Date
         try {
             Sync-DefExtra -Def $def
+            $secondi = [math]::Round((New-TimeSpan -Start $inizioTabella -End (Get-Date)).TotalSeconds)
+            if ($secondi -ge 60) { Write-Log "$($def.Nome): $secondi secondi." }
         }
         catch {
             $dettaglio = Get-CorpoErrore $_
@@ -1868,8 +1993,15 @@ try {
 
     if ($SoloExtra.Count -gt 0) {
         Write-Log "Solo dati aggiuntivi: $($SoloExtra -join ', ')."
-        Sync-Extra
+        Sync-Extra -Nomi $SoloExtra
         Write-Log "Fine (solo dati aggiuntivi)."
+        exit 0
+    }
+
+    if ($Extra) {
+        Write-Log "Dati aggiuntivi (giro separato, massimo $extraMaxMinuti minuti)."
+        Sync-Extra -SenzaPersone
+        Write-Log "Fine (dati aggiuntivi)."
         exit 0
     }
 
@@ -1982,7 +2114,13 @@ try {
 
     Sync-ModificheAbbonamenti
 
-    Sync-Extra
+    if ($extraNelGiro) {
+        Sync-Extra
+    } else {
+        Sync-Extra -Nomi @("persone_senza_acquisti")
+    }
+
+    Write-Log "Fine sincronizzazione."
 }
 catch {
     # $_.Exception.Message da solo, per un errore HTTP, e' solo "(500)

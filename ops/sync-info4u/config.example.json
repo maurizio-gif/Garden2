@@ -15,5 +15,11 @@
   "MaxBatchesPerRun": 20,
   "RefreshApertiOgniOre": 20,
   "RefreshApertiGiorniIndietro": 400,
-  "BatchesRefreshApertiPerGiro": 3
+  "BatchesRefreshApertiPerGiro": 3,
+  "TimeoutHttpSecondi": 120,
+  "TimeoutSqlSecondi": 300,
+  "ExtraAttivo": true,
+  "ExtraNelGiro": false,
+  "ExtraMaxMinuti": 50,
+  "ExtraRiscritturaOgniOre": 24
 }
