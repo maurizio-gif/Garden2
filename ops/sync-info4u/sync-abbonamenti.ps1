@@ -1464,9 +1464,13 @@ $extraRiscritturaOgniOre = if ($config.ExtraRiscritturaOgniOre) { [double]$confi
 # minuti: quello che manca lo fa il giro dopo (watermark e cursori sono su
 # Supabase). Tiene il task notturno lontano dall'ora dopo.
 $extraMaxMinuti = if ($config.ExtraMaxMinuti) { [double]$config.ExtraMaxMinuti } else { 50 }
-# Nel giro da 5 minuti, di default, dei dati aggiuntivi si fanno solo le
-# persone senza acquisti (veloci): il resto va nel task con -Extra. Per
-# tornare al comportamento di prima (tutto nello stesso giro): ExtraNelGiro = true.
+# Nel giro da 5 minuti, di default, dei dati aggiuntivi si fanno solo quelli
+# veloci e che servono subito: le persone senza acquisti e i passaggi ai
+# tornelli di oggi (accessi_corrente, incrementale: pochi millisecondi se non
+# c'e' niente di nuovo). Il resto va nel task con -Extra. Questi due girano
+# anche con ExtraAttivo = false, che spegne solo la parte pesante. Per tornare
+# al comportamento di prima (tutto nello stesso giro): ExtraNelGiro = true.
+$extraVeloci = @("persone_senza_acquisti", "accessi_corrente")
 $extraNelGiro = if ($null -ne $config.ExtraNelGiro) { [bool]$config.ExtraNelGiro } else { $false }
 
 # Le colonne datetime di SQL Server arrivano a Supabase come istanti (timestamptz);
@@ -1611,7 +1615,7 @@ $defsExtra = @(
        Dal = "x.DataAccesso >= @Dal"; WatermarkFiltro = "&origine=eq.S"; BatchSize = 5000 },
     @{ Nome = "accessi_corrente"; Tabella = "accessi"; Modo = "Incrementale"; ChiaveCol = "source_accesso_id"; IdSql = "x.IDAccesso"
        Select = (Get-SelectAccessi -Alias "x" -Origine "A"); From = "dbo.Accessi x"
-       Dal = "x.DataAccesso >= @Dal"; WatermarkFiltro = "&origine=eq.A"; BatchSize = 5000 }
+       Dal = "x.DataAccesso >= @Dal"; WatermarkFiltro = "&origine=eq.A"; BatchSize = 2000 }
 )
 
 function Get-StatoExtra {
@@ -1901,12 +1905,12 @@ function Sync-DefExtra {
     if ($refresh.AllaFine) { Set-StatoExtra "extra_refresh_$nome" (Get-Date) }
 }
 
-# $Nomi: solo queste tabelle (vuoto = tutte). $SenzaPersone: tutte tranne le
-# persone senza acquisti, che restano al giro da 5 minuti (due processi che
-# creano persone insieme potrebbero fare doppioni).
+# $Nomi: solo queste tabelle (vuoto = tutte). $Escludi: tutte tranne queste
+# (il task notturno salta quelle del giro da 5 minuti: due processi che creano
+# persone insieme potrebbero fare doppioni). $Sempre: anche con ExtraAttivo = false.
 function Sync-Extra {
-    param([string[]]$Nomi = @(), [switch]$SenzaPersone)
-    if (-not $extraAttivo) {
+    param([string[]]$Nomi = @(), [string[]]$Escludi = @(), [switch]$Sempre)
+    if (-not $extraAttivo -and -not $Sempre) {
         Write-Log "Dati aggiuntivi spenti (ExtraAttivo = false nel config)."
         return
     }
@@ -1915,7 +1919,7 @@ function Sync-Extra {
     $errori = @()
     foreach ($def in $defsExtra) {
         if ($Nomi.Count -gt 0 -and $Nomi -notcontains $def.Nome) { continue }
-        if ($SenzaPersone -and $def.Modo -eq "Persone") { continue }
+        if ($Escludi -contains $def.Nome) { continue }
         $minuti = (New-TimeSpan -Start $inizioGiro -End (Get-Date)).TotalMinutes
         if ($minuti -ge $extraMaxMinuti) {
             Write-Log "Dati aggiuntivi: passati $([math]::Round($minuti)) minuti (limite $extraMaxMinuti), il resto al prossimo giro." "WARN"
@@ -1993,14 +1997,14 @@ try {
 
     if ($SoloExtra.Count -gt 0) {
         Write-Log "Solo dati aggiuntivi: $($SoloExtra -join ', ')."
-        Sync-Extra -Nomi $SoloExtra
+        Sync-Extra -Nomi $SoloExtra -Sempre
         Write-Log "Fine (solo dati aggiuntivi)."
         exit 0
     }
 
     if ($Extra) {
         Write-Log "Dati aggiuntivi (giro separato, massimo $extraMaxMinuti minuti)."
-        Sync-Extra -SenzaPersone
+        Sync-Extra -Escludi $extraVeloci
         Write-Log "Fine (dati aggiuntivi)."
         exit 0
     }
@@ -2117,7 +2121,7 @@ try {
     if ($extraNelGiro) {
         Sync-Extra
     } else {
-        Sync-Extra -Nomi @("persone_senza_acquisti")
+        Sync-Extra -Nomi $extraVeloci -Sempre
     }
 
     Write-Log "Fine sincronizzazione."
