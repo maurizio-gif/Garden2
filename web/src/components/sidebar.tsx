@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 const VOCI = [
 	{ href: "/", nome: "Panoramica", icona: IconaPanoramica },
 	{ href: "/abbonamenti", nome: "Abbonamenti", icona: IconaAbbonamenti },
+	{ href: "/scadenze", nome: "Scadenze", icona: IconaScadenze },
 	{ href: "/finanza", nome: "Finanza", icona: IconaFinanza },
 	{ href: "/analisi", nome: "Analisi", icona: IconaAnalisi },
 	{ href: "/accessi", nome: "Accessi", icona: IconaAccessi },
@@ -108,6 +109,16 @@ function IconaAbbonamenti({ className }: { className?: string }) {
 		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
 			<path d="M3.5 8.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1.6a1.9 1.9 0 0 0 0 3.8v1.6a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1.6a1.9 1.9 0 0 0 0-3.8Z" />
 			<path d="M14.5 6.8v10.4" strokeDasharray="1.6 2.2" />
+		</svg>
+	);
+}
+
+function IconaScadenze({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
+			<rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+			<path d="M3.5 10h17M8 3v4M16 3v4" />
+			<path d="m9 15 2 2 4-4" />
 		</svg>
 	);
 }

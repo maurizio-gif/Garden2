@@ -68,3 +68,21 @@ il sync è fermo da più di 6 ore.
 ```bash
 npm run lint && npx tsc --noEmit && npm run build
 ```
+
+## Scadenze, rinnovi, valorizzazione, incassi
+
+Funzioni SQL in `supabase/migrations/20261116090000_dashboard_direzionale.sql`
+(definizioni nel commento in testa), con le stesse regole del pannello di
+Ronchi Verdi:
+
+- **rinnovato**: la stessa persona inizia un abbonamento dello stesso gruppo
+  entro 30 giorni dalla scadenza; tasso di rinnovo = rinnovati ÷ scaduti, sui
+  12 mesi «chiusi» (finiti da almeno 30 giorni);
+- **rinnovo / nuovo** sulle vendite: rinnovo se la persona aveva un abbonamento
+  dello stesso gruppo finito nei 30 giorni prima dell'inizio;
+- **valorizzazione**: prezzo degli abbonamenti attivi oggi, parte ancora da
+  godere (in proporzione ai giorni che restano) e valore di un mese.
+
+Pagine: Panoramica (direzionale, 24 mesi con l'anno prima), Scadenze (mesi in
+arrivo, andamento rinnovi, elenco con CSV), Analisi → Incassi (ricerca libera
+sugli incassi con confronto ed esportazione CSV).

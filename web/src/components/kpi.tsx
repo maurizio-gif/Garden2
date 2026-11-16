@@ -111,4 +111,22 @@ export const Icone = {
 			<path d="M6.5 9.5v.01M17.5 14.5v.01" />
 		</svg>
 	),
+	abbonamento: (
+		<svg viewBox="0 0 24 24" {...traccia}>
+			<path d="M3.5 8.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1.6a1.9 1.9 0 0 0 0 3.8v1.6a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1.6a1.9 1.9 0 0 0 0-3.8Z" />
+			<path d="M14.5 6.8v10.4" strokeDasharray="1.6 2.2" />
+		</svg>
+	),
+	rinnovo: (
+		<svg viewBox="0 0 24 24" {...traccia}>
+			<path d="M19.5 12a7.5 7.5 0 0 1-13.2 4.9M4.5 12a7.5 7.5 0 0 1 13.2-4.9" />
+			<path d="M18 3.8v3.6h-3.6M6 20.2v-3.6h3.6" />
+		</svg>
+	),
+	valore: (
+		<svg viewBox="0 0 24 24" {...traccia}>
+			<path d="M12 3.5 20 8v8l-8 4.5L4 16V8Z" />
+			<path d="M4 8l8 4.5L20 8M12 12.5v8" />
+		</svg>
+	),
 };

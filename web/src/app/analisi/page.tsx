@@ -7,6 +7,7 @@ import { Delta } from "@/components/delta";
 import { Icone, Kpi } from "@/components/kpi";
 import { Stagger, StaggerItem } from "@/components/motion-kit";
 import { RankedBars } from "@/components/ranked-bars";
+import { SchedeAnalisi } from "@/components/schede-analisi";
 import { ScheletroLista } from "@/components/scheletri";
 import { StatoDati } from "@/components/stato-dati";
 import { CAMPI, METRICHE, RAGGRUPPA, filtriInQuery, isTempo } from "@/lib/analisi";
@@ -27,6 +28,7 @@ export default function Pagina({ searchParams }: PageProps<"/analisi">) {
 					Costruisci la tua vista sugli abbonamenti: scegli il periodo, filtra per prodotto, venditore o testo, raggruppa come
 					preferisci e confronta con l&apos;anno scorso. Ogni analisi è un link: copialo o salvalo come vista.
 				</p>
+				<SchedeAnalisi attiva="vendite" />
 			</div>
 			<Suspense fallback={<ScheletroLista />}>
 				<Contenuto searchParams={searchParams} />

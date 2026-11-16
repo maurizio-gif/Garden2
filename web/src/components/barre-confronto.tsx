@@ -133,6 +133,18 @@ export function BarreConfronto({
 														{c.nomeConfronto ?? nomeConfronto}: <b className="tabular-nums text-ink-2">{fmt(c.confronto)}</b>
 													</span>
 												)}
+												{c.confronto != null && c.confronto !== 0 && (
+													<span
+														className={`mt-1 inline-block rounded-full px-1.5 py-px font-medium tabular-nums ${
+															c.valore >= c.confronto ? "bg-accent-soft text-accent-strong" : "bg-warn-soft text-warn"
+														}`}
+													>
+														{c.valore >= c.confronto ? "+" : "−"}
+														{Math.abs(Math.round(((c.valore - c.confronto) / Math.abs(c.confronto)) * 100))}% ·{" "}
+														{c.valore >= c.confronto ? "+" : "−"}
+														{fmt(Math.abs(c.valore - c.confronto))}
+													</span>
+												)}
 											</span>
 										)}
 									</button>

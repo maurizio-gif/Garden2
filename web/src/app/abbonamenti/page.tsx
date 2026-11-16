@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { BarreConfronto, type ColonnaConfronto } from "@/components/barre-confronto";
 import { Card, Titolo } from "@/components/card";
 import { ConfrontoMensile } from "@/components/confronto-mensile";
 import { Delta } from "@/components/delta";
@@ -11,9 +12,10 @@ import { ListaVendite } from "@/components/righe";
 import { ScheletroLista } from "@/components/scheletri";
 import { StatoDati } from "@/components/stato-dati";
 import type { SerieAnno } from "@/components/linee-anni";
-import { leggiAbbonamenti, leggiConfronto } from "@/lib/data";
+import { TabellaValorizzazione } from "@/components/valorizzazione";
+import { leggiAbbonamenti, leggiConfronto, leggiDirezionale } from "@/lib/data";
 import { dataBreve, euro, intero, meseCorto, meseLungo } from "@/lib/format";
-import type { ConfrontoAnni } from "@/lib/types";
+import type { ConfrontoAnni, MeseDirezionale } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Abbonamenti" };
 
@@ -45,7 +47,25 @@ function nomeAnno(anniFa: number, giorno: string) {
 }
 
 async function Contenuto() {
-	const [{ dati: c, modo, adesso }, { dati: recenti }] = await Promise.all([leggiConfronto(), leggiAbbonamenti()]);
+	const [{ dati: c, modo, adesso }, { dati: recenti }, { dati: d }] = await Promise.all([
+		leggiConfronto(),
+		leggiAbbonamenti(),
+		leggiDirezionale(),
+	]);
+
+	/** Gli ultimi 24 mesi, ognuno con lo stesso mese dell'anno prima accanto. */
+	const ventiquattro = (valore: (m: MeseDirezionale) => number): ColonnaConfronto[] =>
+		d.mesi.slice(-24).map((m, i) => {
+			const prima = d.mesi[d.mesi.length - 24 + i - 12];
+			return {
+				etichetta: meseCorto(m.mese),
+				secondaRiga: m.mese.slice(5, 7) === "01" ? m.mese.slice(0, 4) : undefined,
+				nomeCompleto: meseLungo(m.mese) + (i === 23 ? " (in corso)" : ""),
+				valore: valore(m),
+				confronto: prima ? valore(prima) : null,
+				nomeConfronto: prima ? meseLungo(prima.mese) : undefined,
+			};
+		});
 
 	const annoCorrente = Number(c.oggi.slice(0, 4));
 	const meseCorrente = Number(c.oggi.slice(5, 7)) - 1;
@@ -151,6 +171,43 @@ async function Contenuto() {
 					}
 				/>
 			</div>
+
+			<div className="grid gap-4 xl:grid-cols-2">
+				<Card
+					titolo="Abbonamenti venduti, ultimi 24 mesi"
+					sottotitolo="Numero di vendite per mese, accanto allo stesso mese dell'anno prima. Passa sopra per la differenza."
+				>
+					<BarreConfronto
+						colonne={ventiquattro((m) => m.vendite)}
+						formato="numero"
+						nomeMisura="Abbonamenti venduti per mese, ultimi 24 mesi, con l'anno prima"
+						nomeCorrente="Vendite"
+						nomeConfronto="Stesso mese, anno prima"
+					/>
+				</Card>
+				<Card
+					titolo="Venduto in euro, ultimi 24 mesi"
+					sottotitolo="Valore delle vendite per mese (escluse le quote associative), accanto all'anno prima."
+				>
+					<BarreConfronto
+						colonne={ventiquattro((m) => m.venduto)}
+						formato="euro"
+						nomeMisura="Venduto per mese, ultimi 24 mesi, con l'anno prima"
+						nomeCorrente="Venduto"
+						nomeConfronto="Stesso mese, anno prima"
+					/>
+				</Card>
+			</div>
+
+			<Card
+				titolo="Valorizzazione degli abbonamenti attivi"
+				sottotitolo="Quanto valgono oggi gli abbonamenti in corso, per gruppo. Scadenze e rinnovi nel dettaglio nella pagina Scadenze."
+			>
+				<TabellaValorizzazione righe={d.valorizzazione} />
+				<Link href="/scadenze" className="mt-3 self-start text-sm font-medium text-accent-strong underline-offset-2 hover:underline">
+					Vai a scadenze e rinnovi →
+				</Link>
+			</Card>
 
 			<Card
 				titolo="Iscritti: oggi e lo stesso giorno degli anni passati"

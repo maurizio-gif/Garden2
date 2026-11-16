@@ -124,3 +124,116 @@ export type Finanza = {
 		debitori: { nome: string | null; cognome: string | null; importo: number; rate: number; piu_vecchia: string }[];
 	};
 };
+
+// ── Direzionale, scadenze e rinnovi, incassi
+// (supabase/migrations/20261116090000_dashboard_direzionale.sql)
+
+export type MeseDirezionale = {
+	/** Primo giorno del mese, AAAA-MM-GG. */
+	mese: string;
+	incassato: number;
+	incassato_abbonamenti: number;
+	vendite: number;
+	venduto: number;
+	vendite_rinnovi: number;
+	venduto_rinnovi: number;
+	/** Persone iscritte a fine mese (oggi per il mese in corso). */
+	iscritti: number;
+};
+
+export type Valorizzazione = {
+	/** null = totale. */
+	gruppo: string | null;
+	prodotti: number;
+	persone: number;
+	/** Somma del prezzo dei prodotti attivi oggi. */
+	valore: number;
+	/** Parte non ancora goduta (rateo sui giorni che mancano). */
+	residuo: number;
+	/** Valore spalmato su un mese. */
+	mensile: number;
+};
+
+export type Direzionale = {
+	oggi: string;
+	aggiornato_al: string | null;
+	/** 36 mesi, dal più vecchio al mese in corso (incompleto). */
+	mesi: MeseDirezionale[];
+	iscritti: { quando: "oggi" | "mese_fa" | "anno_fa"; giorno: string; persone: number }[];
+	valorizzazione: Valorizzazione[];
+	periodi: {
+		periodo: "mtd" | "ytd";
+		anni_fa: number;
+		da: string;
+		a: string;
+		vendite: number;
+		venduto: number;
+		incassato: number;
+	}[];
+};
+
+export type MeseScadenze = {
+	mese: string;
+	gruppo: string;
+	scadenze: number;
+	rinnovati: number;
+	/** Somma del prezzo dei prodotti che scadono. */
+	valore: number;
+	/** Di quel valore, la parte già rinnovata. */
+	valore_rinnovati: number;
+	/** Quanto valgono i rinnovi (il nuovo prodotto). */
+	valore_rinnovi: number;
+};
+
+export type Scadenze = { oggi: string; aggiornato_al: string | null; mesi: MeseScadenze[] };
+
+export type RigaScadenza = {
+	abbonamento: string | null;
+	data_inizio: string;
+	data_fine: string;
+	totale: number | null;
+	venditore: string | null;
+	gruppo: string;
+	nome: string | null;
+	cognome: string | null;
+	cellulare: string | null;
+	email: string | null;
+	rinnovo_abbonamento: string | null;
+	rinnovo_inizio: string | null;
+	rinnovo_fine: string | null;
+	rinnovo_totale: number | null;
+};
+
+export type ElencoScadenze = {
+	totale: number;
+	rinnovati: number;
+	valore: number;
+	valore_da_rinnovare: number;
+	righe: RigaScadenza[];
+};
+
+export type RigaIncassi = { chiave: string; importo: number; movimenti: number; persone: number };
+
+export type AnalisiIncassi = {
+	totali: { importo: number; entrate: number; uscite: number; movimenti: number; persone: number };
+	righe: RigaIncassi[];
+	troncato: boolean;
+};
+
+export type Movimento = {
+	quando: string;
+	importo: number;
+	tipologia: string;
+	metodo: string;
+	operatore: string;
+	gruppo: string | null;
+	descrizione: string | null;
+	causale: string | null;
+	nome: string | null;
+	cognome: string | null;
+	abbonamento: string | null;
+};
+
+export type ElencoMovimenti = { totale: number; righe: Movimento[] };
+
+export type OpzioniIncassi = { tipologie: string[]; metodi: string[]; operatori: string[]; gruppi: string[] };

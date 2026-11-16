@@ -19,6 +19,20 @@ import {
 	homeDemo,
 	opzioniDemo,
 } from "./demo";
+import {
+	analisiIncassiDemo,
+	direzionaleDemo,
+	elencoMovimentiDemo,
+	elencoScadenzeDemo,
+	opzioniIncassiDemo,
+	scadenzeDemo,
+} from "./demo-direzionale";
+import {
+	filtriIncassiPerRpc,
+	leggiFiltriIncassi,
+	periodoConfrontoIncassi,
+	type FiltriIncassi,
+} from "./incassi";
 import type {
 	AbbonamentiRecenti,
 	AccessiRecenti,
@@ -29,6 +43,12 @@ import type {
 	Home,
 	Opzioni,
 	Vista,
+	AnalisiIncassi,
+	Direzionale,
+	ElencoMovimenti,
+	ElencoScadenze,
+	OpzioniIncassi,
+	Scadenze,
 } from "./types";
 
 /**
@@ -255,4 +275,122 @@ export async function leggiFinanza(): Promise<Letto<Finanza>> {
 	const adesso = Date.now();
 	if (!configurazione()) return { dati: finanzaDemo(new Date(adesso)), modo: "demo", adesso };
 	return { dati: await rpc<Finanza>("dashboard_finanza", { p_anni: 3 }), modo: "reale", adesso };
+}
+
+// ── Direzionale, scadenze e rinnovi, incassi
+// (supabase/migrations/20261116090000_dashboard_direzionale.sql)
+
+/**
+ * Tre anni di incassi, vendite (con nuovi e rinnovi) e iscritti: ~4 secondi di
+ * calcolo. In cache, rinnovata ogni cinque minuti come la pagina Finanza.
+ */
+export async function leggiDirezionale(): Promise<Letto<Direzionale>> {
+	"use cache";
+	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: direzionaleDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<Direzionale>("dashboard_direzionale"), modo: "reale", adesso };
+}
+
+/** Scadenze e rinnovi per mese e gruppo, 35 mesi indietro e 3 avanti. */
+export async function leggiScadenze(): Promise<Letto<Scadenze>> {
+	"use cache";
+	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: scadenzeDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<Scadenze>("dashboard_scadenze"), modo: "reale", adesso };
+}
+
+export type FiltriScadenze = {
+	da: string;
+	a: string;
+	gruppi: string[];
+	stato: "tutti" | "rinnovati" | "da_rinnovare";
+	q: string;
+	pagina: number;
+	ordine: "fine" | "importo" | "nome";
+};
+
+/** Le scadenze una per una, con chi ha già rinnovato. */
+export async function leggiElencoScadenze(f: FiltriScadenze, tutte = false): Promise<Letto<ElencoScadenze>> {
+	await connection();
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: elencoScadenzeDemo(new Date(adesso)), modo: "demo", adesso };
+	const dati = await rpc<ElencoScadenze>("dashboard_scadenze_elenco", {
+		p_filtri: { da: f.da, a: f.a, gruppi: f.gruppi, stato: f.stato, q: f.q },
+		p_limite: tutte ? 20_000 : RIGHE_PER_PAGINA,
+		p_salta: tutte ? 0 : (f.pagina - 1) * RIGHE_PER_PAGINA,
+		p_ordine: f.ordine,
+	});
+	return { dati, modo: "reale", adesso };
+}
+
+/** Tipologie, metodi, operatori per i menu della ricerca sugli incassi. */
+export async function leggiOpzioniIncassi(): Promise<OpzioniIncassi> {
+	"use cache";
+	cacheLife("hours");
+	if (!configurazione()) return opzioniIncassiDemo();
+	return rpc<OpzioniIncassi>("dashboard_incassi_opzioni");
+}
+
+export type RisultatoIncassi = {
+	filtri: FiltriIncassi;
+	corrente: AnalisiIncassi;
+	precedente: AnalisiIncassi | null;
+	periodoPrecedente: { da: string; a: string } | null;
+	elenco: ElencoMovimenti;
+	modo: "reale" | "demo";
+	adesso: number;
+};
+
+/** La ricerca sugli incassi con il suo confronto e l'elenco dei movimenti, in parallelo. */
+export async function leggiAnalisiIncassi(cerca: Record<string, string | string[] | undefined>): Promise<RisultatoIncassi> {
+	await connection();
+	const adesso = Date.now();
+	const filtri = leggiFiltriIncassi(cerca, oggiARoma(adesso));
+	const periodoPrecedente = periodoConfrontoIncassi(filtri);
+	const raggruppa = filtri.raggruppa;
+
+	if (!configurazione()) {
+		return {
+			filtri,
+			corrente: analisiIncassiDemo(raggruppa, filtri.da, filtri.a, "c"),
+			precedente: periodoPrecedente ? analisiIncassiDemo(raggruppa, periodoPrecedente.da, periodoPrecedente.a, "p") : null,
+			periodoPrecedente,
+			elenco: elencoMovimentiDemo(new Date(adesso)),
+			modo: "demo",
+			adesso,
+		};
+	}
+
+	const [corrente, precedente, elenco] = await Promise.all([
+		rpc<AnalisiIncassi>("dashboard_incassi", { p_filtri: filtriIncassiPerRpc(filtri), p_raggruppa: raggruppa }),
+		periodoPrecedente
+			? rpc<AnalisiIncassi>("dashboard_incassi", {
+					p_filtri: filtriIncassiPerRpc(filtri, periodoPrecedente),
+					p_raggruppa: raggruppa,
+				})
+			: Promise.resolve(null),
+		rpc<ElencoMovimenti>("dashboard_incassi_righe", {
+			p_filtri: filtriIncassiPerRpc(filtri),
+			p_limite: RIGHE_PER_PAGINA,
+			p_salta: (filtri.pagina - 1) * RIGHE_PER_PAGINA,
+			p_ordine: filtri.ordine,
+		}),
+	]);
+	return { filtri, corrente, precedente, periodoPrecedente, elenco, modo: "reale", adesso };
+}
+
+/** Tutti i movimenti del filtro (fino a 20.000) per l'esportazione in CSV. */
+export async function leggiMovimentiPerCsv(cerca: Record<string, string | string[] | undefined>) {
+	await connection();
+	const filtri = leggiFiltriIncassi(cerca, oggiARoma());
+	if (!configurazione()) return { filtri, elenco: elencoMovimentiDemo(new Date()) };
+	const elenco = await rpc<ElencoMovimenti>("dashboard_incassi_righe", {
+		p_filtri: filtriIncassiPerRpc(filtri),
+		p_limite: 20_000,
+		p_salta: 0,
+		p_ordine: filtri.ordine,
+	});
+	return { filtri, elenco };
 }
