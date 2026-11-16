@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
+import { Logo } from "./logo";
+import { SceltaTema } from "./tema";
 
 const VOCI = [
 	{ href: "/", nome: "Panoramica", icona: IconaPanoramica },
@@ -27,13 +29,12 @@ export function Sidebar() {
 	return (
 		<aside
 			className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm
-				md:sticky md:top-0 md:h-dvh md:w-60 md:shrink-0 md:border-r md:border-t-0 md:bg-surface md:backdrop-blur-none"
+				md:sticky md:top-0 md:h-dvh md:w-64 md:shrink-0 md:border-r md:border-t-0 md:bg-surface md:backdrop-blur-none"
 		>
 			<div className="flex h-full flex-col px-3 py-2 md:px-4 md:py-6">
-				<div className="mb-8 hidden items-center gap-2.5 px-2 md:flex">
-					<Foglia />
-					<span className="text-lg font-semibold tracking-tight">Garden</span>
-				</div>
+				<Link href="/" aria-label="Garden Sporting Center, panoramica" className="mb-8 hidden px-1 md:block">
+					<Logo className="h-auto w-full" />
+				</Link>
 
 				<nav aria-label="Sezioni" className="flex flex-1 gap-1 md:flex-none md:flex-col">
 					{VOCI.map(({ href, nome, icona: Icona }) => {
@@ -61,29 +62,15 @@ export function Sidebar() {
 					})}
 				</nav>
 
-				<p className="mt-auto hidden px-2 text-xs text-ink-3 md:block">
-					Dati da Info4U
-				</p>
+				<div className="mt-auto hidden flex-col gap-3 px-2 md:flex">
+					<SceltaTema className="self-start" />
+					<p className="text-xs text-ink-3">Dati da Info4U</p>
+				</div>
 			</div>
 		</aside>
 	);
 }
 
-function Foglia() {
-	return (
-		<svg viewBox="0 0 32 32" className="size-7" aria-hidden="true">
-			<rect width="32" height="32" rx="9" fill="var(--accent)" />
-			<path
-				d="M9 22c0-7 4-12 14-13 0 8-4 13-11 13-1 0-2 0-3 0Z"
-				fill="none"
-				stroke="#fff"
-				strokeWidth="1.8"
-				strokeLinejoin="round"
-			/>
-			<path d="M9 23c3-4 6-7 10-9" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
-		</svg>
-	);
-}
 
 const traccia = {
 	fill: "none",

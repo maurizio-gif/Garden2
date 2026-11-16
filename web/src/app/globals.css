@@ -3,8 +3,8 @@
 /*
  * Palette di Garden: neutri caldi + un verde. Ogni colore ha un ruolo, i
  * componenti usano i ruoli (bg-surface, text-muted…) e mai l'esadecimale.
- * Il tema scuro segue il sistema: sono valori scelti per lo sfondo scuro, non
- * il chiaro invertito.
+ * Il tema scuro segue il sistema, oppure la scelta fatta nel pannello: sono
+ * valori scelti per lo sfondo scuro, non il chiaro invertito.
  */
 :root {
 	color-scheme: light;
@@ -30,12 +30,16 @@
 	--serie-3: #8a5fb0;
 	--serie-4: #7a7f84;
 	--serie-5: #b3a572;
+	--logo-chiaro: #4ab278;
+	--logo-scuro: #12332c;
 	--shadow: 0 1px 2px rgb(22 24 26 / 0.05), 0 1px 1px rgb(22 24 26 / 0.03);
 	--shadow-lift: 0 12px 28px -10px rgb(22 24 26 / 0.22), 0 2px 6px rgb(22 24 26 / 0.06);
 }
 
+/* Tema scuro: segue il sistema, salvo una scelta esplicita nel pannello
+   (data-theme su <html>, vedi src/components/tema.tsx). */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		color-scheme: dark;
 		--bg: #0f1311;
 		--surface: #171c19;
@@ -57,9 +61,37 @@
 		--serie-3: #b794d9;
 		--serie-4: #a0a5a0;
 		--serie-5: #cfc08a;
+		--logo-scuro: #e6ece8;
 		--shadow: 0 1px 2px rgb(0 0 0 / 0.35);
 		--shadow-lift: 0 14px 30px -10px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
 	}
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--bg: #0f1311;
+	--surface: #171c19;
+	--surface-2: #1e2420;
+	--border: #29302b;
+	--text: #eceeea;
+	--text-2: #b5bab4;
+	--text-3: #8d928c;
+	--accent: #4cc38a;
+	--accent-strong: #7bd9ab;
+	--accent-soft: #1b3025;
+	--warn: #f0a35e;
+	--warn-soft: #3a2a17;
+	--bad: #f28b82;
+	--bad-soft: #3b1f1d;
+	--serie-0: #4cc38a;
+	--serie-1: #e8a15a;
+	--serie-2: #6fa0e8;
+	--serie-3: #b794d9;
+	--serie-4: #a0a5a0;
+	--serie-5: #cfc08a;
+	--logo-scuro: #e6ece8;
+	--shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+	--shadow-lift: 0 14px 30px -10px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
 }
 
 @theme inline {
