@@ -182,7 +182,12 @@ $supabaseHeaders = @{
 
 # ────────────────────────────────────────────────────── connessione SQL
 
-$connectionString = "Server=$($config.SqlServer.Server),$($config.SqlServer.Port);Database=$($config.SqlServer.Database);User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);TrustServerCertificate=True;Connect Timeout=30;"
+# Server: "localhost" con Port, oppure un'istanza con nome ("localhost\SQLEXPRESS")
+# senza Port. Senza User si entra con l'utente Windows che fa girare lo script
+# (Integrated Security), come sul server di Garden.
+$sqlServer = if ($config.SqlServer.Port) { "$($config.SqlServer.Server),$($config.SqlServer.Port)" } else { "$($config.SqlServer.Server)" }
+$sqlAccesso = if ($config.SqlServer.User) { "User Id=$($config.SqlServer.User);Password=$($config.SqlServer.Password);" } else { "Integrated Security=True;" }
+$connectionString = "Server=$sqlServer;Database=$($config.SqlServer.Database);${sqlAccesso}TrustServerCertificate=True;Connect Timeout=30;"
 
 # ──────────────────────────────────────────────────────────── watermark
 
