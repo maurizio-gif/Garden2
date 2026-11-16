@@ -20,6 +20,8 @@ import {
 	opzioniDemo,
 } from "./demo";
 import {
+	accessiDashboardDemo,
+	accessiMensileDemo,
 	analisiIncassiDemo,
 	direzionaleDemo,
 	elencoMovimentiDemo,
@@ -43,7 +45,9 @@ import type {
 	Home,
 	Opzioni,
 	Vista,
+	AccessiMensile,
 	AnalisiIncassi,
+	DashboardAccessi,
 	Direzionale,
 	ElencoMovimenti,
 	ElencoScadenze,
@@ -393,4 +397,27 @@ export async function leggiMovimentiPerCsv(cerca: Record<string, string | string
 		p_ordine: filtri.ordine,
 	});
 	return { filtri, elenco };
+}
+
+// ── Dashboard accessi (riassunti giornalieri aggiornati da pg_cron ogni 5 minuti)
+
+/** Un periodo: in cache 5 minuti, ogni periodo ha la sua voce. */
+export async function leggiDashboardAccessi(da: string, a: string): Promise<Letto<DashboardAccessi>> {
+	"use cache";
+	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) {
+		const fattore = da < `${new Date(adesso).getUTCFullYear()}-01-01` && a < `${new Date(adesso).getUTCFullYear()}-01-01` ? 0.94 : 1;
+		return { dati: accessiDashboardDemo(da, a, fattore), modo: "demo", adesso };
+	}
+	return { dati: await rpc<DashboardAccessi>("dashboard_accessi", { p_da: da, p_a: a }), modo: "reale", adesso };
+}
+
+/** Mese per mese dal gennaio di tre anni fa: in cache un quarto d'ora. */
+export async function leggiAccessiMensile(): Promise<Letto<AccessiMensile>> {
+	"use cache";
+	cacheLife({ stale: 60, revalidate: 900, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: accessiMensileDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<AccessiMensile>("dashboard_accessi_mensile"), modo: "reale", adesso };
 }

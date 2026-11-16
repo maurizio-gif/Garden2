@@ -16,6 +16,7 @@ export type ColonnaConfronto = {
 
 const euro = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0, useGrouping: "always" });
 const intero = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0, useGrouping: "always" });
+const decimale = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const compatto = new Intl.NumberFormat("it-IT", { notation: "compact", maximumFractionDigits: 1 });
 
 function scala(max: number) {
@@ -43,7 +44,8 @@ export function BarreConfronto({
 	nomeConfronto,
 }: {
 	colonne: ColonnaConfronto[];
-	formato: "euro" | "numero";
+	/** «decimale»: una cifra dopo la virgola (es. 2,3 volte a settimana). */
+	formato: "euro" | "numero" | "decimale";
 	nomeMisura: string;
 	nomeCorrente: string;
 	nomeConfronto?: string;
@@ -52,7 +54,7 @@ export function BarreConfronto({
 	const ref = useRef<HTMLDivElement>(null);
 	const visto = useInView(ref, { once: true, amount: 0.15 });
 	const [attivo, setAttivo] = useState<number | null>(null);
-	const fmt = (v: number) => (formato === "euro" ? euro.format(v) : intero.format(v));
+	const fmt = (v: number) => (formato === "euro" ? euro.format(v) : formato === "decimale" ? decimale.format(v) : intero.format(v));
 	const conConfronto = colonne.some((c) => c.confronto != null);
 	const max = Math.max(...colonne.flatMap((c) => [c.valore, c.confronto ?? 0]), 0);
 	const { tetto, tacche } = scala(max);

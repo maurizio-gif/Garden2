@@ -237,3 +237,40 @@ export type Movimento = {
 export type ElencoMovimenti = { totale: number; righe: Movimento[] };
 
 export type OpzioniIncassi = { tipologie: string[]; metodi: string[]; operatori: string[]; gruppi: string[] };
+
+// ── Dashboard accessi
+// (supabase/migrations/20261116190000_dashboard_accessi.sql, 20261116200000_accessi_giorno.sql)
+
+export type DashboardAccessi = {
+	da: string;
+	a: string;
+	ultimo_accesso: string | null;
+	/** Ultimo aggiornamento dei riassunti giornalieri (pg_cron, ogni 5 minuti). */
+	aggiornato_al: string | null;
+	totali: {
+		/** Passaggi validi ai tornelli. */
+		ingressi: number;
+		/** Persona-giorno: chi passa più volte nello stesso giorno conta una volta. */
+		presenze: number;
+		persone: number;
+		/** Somma, per persona, delle settimane con almeno una presenza. */
+		settimane_persona: number;
+		rifiutati: number;
+		giorni: number;
+		giorni_aperti: number;
+	};
+	/** dow 1 = lunedì … 7 = domenica; `giorni` = quanti di quei giorni nel periodo. */
+	giorni_settimana: { dow: number; giorni: number; presenze: number }[];
+	/** Ora del primo ingresso della giornata. */
+	ore: { dow: number; ora: number; presenze: number }[];
+	giorni: { giorno: string; presenze: number }[];
+	varchi: { varco: string; ingressi: number; rifiutati: number }[];
+	rifiuti: { motivo: string; n: number }[];
+	abbonamenti: { abbonamento: string; gruppo: string; presenze: number; persone: number; settimane_persona: number }[];
+	gruppi: { gruppo: string; presenze: number; persone: number; settimane_persona: number }[];
+	utenti: { nome: string | null; cognome: string | null; presenze: number; settimane: number; ingressi: number }[];
+};
+
+export type AccessiMensile = {
+	mesi: { mese: string; presenze: number; ingressi: number; persone: number; settimane_persona: number }[];
+};

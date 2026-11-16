@@ -1,7 +1,9 @@
 import { colonneTempo } from "./analisi";
 import { isTempoIncassi, type RaggruppaIncassi } from "./incassi";
 import type {
+	AccessiMensile,
 	AnalisiIncassi,
+	DashboardAccessi,
 	Direzionale,
 	ElencoMovimenti,
 	ElencoScadenze,
@@ -190,4 +192,81 @@ export function elencoMovimentiDemo(adesso: Date): ElencoMovimenti {
 		};
 	});
 	return { totale: 30, righe };
+}
+
+export function accessiDashboardDemo(da: string, a: string, fattore = 1): DashboardAccessi {
+	const giorni = Math.max(1, Math.round((Date.parse(a) - Date.parse(da)) / 86_400_000) + 1);
+	const pesoDow = [1.15, 1.1, 1.12, 1.05, 0.95, 0.62, 0.45];
+	const presenzeGiorno = 1050 * fattore;
+	const presenze = Math.round(presenzeGiorno * giorni * 0.92);
+	const persone = Math.round(Math.min(5200, 1400 + giorni * 40) * fattore);
+	const settimane = Math.round(presenze / 2.1);
+	return {
+		da,
+		a,
+		ultimo_accesso: new Date().toISOString(),
+		aggiornato_al: new Date().toISOString(),
+		totali: { ingressi: Math.round(presenze * 1.07), presenze, persone, settimane_persona: settimane, rifiutati: Math.round(presenze * 0.06), giorni, giorni_aperti: giorni },
+		giorni_settimana: pesoDow.map((p, i) => ({ dow: i + 1, giorni: Math.ceil(giorni / 7), presenze: Math.round(presenzeGiorno * p * Math.ceil(giorni / 7)) })),
+		ore: Array.from({ length: 7 }, (_, d) =>
+			Array.from({ length: 17 }, (_, h) => {
+				const ora = h + 6;
+				const picco = Math.exp(-((ora - 18) ** 2) / 6) + 0.7 * Math.exp(-((ora - 9) ** 2) / 4) + 0.3;
+				return { dow: d + 1, ora, presenze: Math.round(picco * 90 * pesoDow[d] * Math.ceil(giorni / 7) * fattore) };
+			}),
+		).flat(),
+		giorni: [],
+		varchi: [
+			{ varco: "Ingresso Maschi", ingressi: Math.round(presenze * 0.58), rifiutati: Math.round(presenze * 0.03) },
+			{ varco: "Ingresso Femmine", ingressi: Math.round(presenze * 0.23), rifiutati: Math.round(presenze * 0.015) },
+			{ varco: "Ingresso Steven", ingressi: Math.round(presenze * 0.2), rifiutati: Math.round(presenze * 0.012) },
+			{ varco: "Calcetto", ingressi: Math.round(presenze * 0.013), rifiutati: 0 },
+		],
+		rifiuti: [
+			{ motivo: "Blocco casella messaggi", n: Math.round(presenze * 0.02) },
+			{ motivo: "Certificato medico non valido", n: Math.round(presenze * 0.012) },
+			{ motivo: "Nessun servizio abilitato", n: Math.round(presenze * 0.008) },
+			{ motivo: "Iscrizione scaduta", n: Math.round(presenze * 0.007) },
+			{ motivo: "Pagamento scaduto", n: Math.round(presenze * 0.007) },
+		],
+		abbonamenti: [
+			["Fitness open annuale", "Fitness e wellness", 0.31, 0.12],
+			["Nuoto libero 12 mesi", "Nuoto", 0.18, 0.08],
+			["Family nuoto", "Nuoto", 0.12, 0.09],
+			["Corso nuoto adulti", "Corsi", 0.08, 0.06],
+			["Personal 10 sedute", "Personal training", 0.03, 0.02],
+		].map(([abbonamento, gruppo, quota, pers]) => ({
+			abbonamento: abbonamento as string,
+			gruppo: gruppo as string,
+			presenze: Math.round(presenze * (quota as number)),
+			persone: Math.round(persone * (pers as number) * 3),
+			settimane_persona: Math.round(settimane * (quota as number)),
+		})),
+		gruppi: GRUPPI.map((gruppo, i) => ({
+			gruppo,
+			presenze: Math.round(presenze * PESO[i]),
+			persone: Math.round(persone * PESO[i] * 1.2),
+			settimane_persona: Math.round(settimane * PESO[i]),
+		})),
+		utenti: NOMI.map(([nome, cognome], i) => ({
+			nome,
+			cognome,
+			presenze: Math.round(Math.min(giorni, 90) * (0.9 - i * 0.05)),
+			settimane: Math.ceil(Math.min(giorni, 90) / 7),
+			ingressi: Math.round(Math.min(giorni, 90) * (1.1 - i * 0.05)),
+		})),
+	};
+}
+
+export function accessiMensileDemo(adesso: Date): AccessiMensile {
+	const y = adesso.getUTCFullYear();
+	const mesi: AccessiMensile["mesi"] = [];
+	for (let k = 0; k < 36 + adesso.getUTCMonth() + 1; k++) {
+		const d = new Date(Date.UTC(y - 3, k, 1));
+		if (d > adesso) break;
+		const s = [1.1, 1.05, 1, 0.95, 0.9, 0.7, 0.55, 0.35, 1, 1.12, 1.1, 0.85][d.getUTCMonth()];
+		const presenze = Math.round(26_000 * s * (1 + k * 0.004));
+		mesi.push({ mese: d.toISOString().slice(0, 10), presenze, ingressi: Math.round(presenze * 1.07), persone: Math.round(3800 * s), settimane_persona: Math.round(presenze / (2 + 0.2 * Math.sin(k))) });
+	}
+	return { mesi };
 }
