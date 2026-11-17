@@ -47,9 +47,9 @@ sola, il processo restava appeso per ore con 3-4 GB di memoria e Windows non
 faceva partire i giri successivi. Ora:
 
 - **giro da 5 minuti** (l'attività che c'è già, senza parametri): vendite,
-  cassa, rate, modifiche, persone senza acquisti e passaggi ai tornelli di
-  oggi (`accessi_corrente`, a blocchi da 2.000). Dura pochi secondi. Persone e
-  tornelli girano anche con `"ExtraAttivo": false`, che spegne solo la parte
+  cassa, rate, modifiche, persone senza acquisti, passaggi ai tornelli di
+  oggi (`accessi_corrente`, a blocchi da 2.000) e certificati medici. Dura pochi secondi. Persone,
+  tornelli e certificati girano anche con `"ExtraAttivo": false`, che spegne solo la parte
   pesante.
 - **giro notturno** (attività nuova): gli altri dati aggiuntivi (CRM, email,
   certificati, prenotazioni, ricevute, archivio storico degli accessi) con `-Extra`. Si ferma da solo

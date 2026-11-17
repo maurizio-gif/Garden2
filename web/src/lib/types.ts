@@ -387,3 +387,87 @@ export type SchedaPersona = {
 	memo: { quando: string | null; oggetto: string | null; testo: string | null }[];
 	email: { quando: string; oggetto: string | null; inviata: string | null; errore: string | null }[];
 };
+
+// ── Certificati medici (supabase/migrations/20261117110000_dashboard_certificati.sql)
+
+export type FasciaCertificato =
+	| "mai"
+	| "scaduto_oltre"
+	| "scaduto_365"
+	| "scaduto_180"
+	| "scaduto_90"
+	| "scaduto_30"
+	| "in_scadenza"
+	| "valido";
+
+export type Certificati = {
+	oggi: string;
+	/** Ultimo aggiornamento dei certificati dal sync. */
+	aggiornato_al: string | null;
+	/** Iscritti attivi dai 6 anni compiuti (con il filtro sui gruppi). */
+	attivi: number;
+	/** Di questi, quanti non hanno la data di nascita (non si può sapere se hanno 6 anni). */
+	senza_data_nascita: number;
+	fasce: Partial<Record<FasciaCertificato, number>>;
+	/** Senza filtro sui gruppi: per la tabella per gruppo. */
+	gruppi: { gruppo: string; fascia: FasciaCertificato; n: number }[];
+	tipi: { tipo: string; n: number }[];
+	totale: number;
+	righe: {
+		persona_id: string;
+		nome: string | null;
+		cognome: string | null;
+		cellulare: string | null;
+		email: string | null;
+		eta: number | null;
+		abbonamento: string | null;
+		gruppo: string;
+		fine_abbonamento: string | null;
+		scadenza: string | null;
+		tipo: string | null;
+		giorni_scaduto: number | null;
+		fascia: FasciaCertificato;
+		respinti_30g: number;
+		ultimo_accesso: string | null;
+	}[];
+};
+
+// ── Debitori (supabase/migrations/20261117120000_dashboard_debitori.sql)
+
+export type FasciaDebito = "g30" | "g90" | "g180" | "g365" | "oltre";
+
+export type Debitori = {
+	oggi: string;
+	aggiornato_al: string | null;
+	/** Per anzianità della singola rata; «in_scadenza» = entro 30 giorni. */
+	fasce: Partial<Record<FasciaDebito | "in_scadenza", { rate: number; importo: number; persone: number }>>;
+	/** Persone per fascia della loro rata scaduta più vecchia. */
+	fasce_persone: Partial<Record<FasciaDebito, { persone: number; importo: number; iscritti: number }>>;
+	totale_scaduto: number;
+	debitori: number;
+	debitori_iscritti: number;
+	scaduto_iscritti: number;
+	per_gruppo: { gruppo: string; importo: number; rate: number }[];
+	per_metodo: { metodo: string; importo: number; rate: number }[];
+	totale: number;
+	totale_importo: number;
+	righe: {
+		persona_id: string;
+		nome: string | null;
+		cognome: string | null;
+		cellulare: string | null;
+		email: string | null;
+		scaduto: number;
+		rate_scadute: number;
+		piu_vecchia: string;
+		giorni: number;
+		fascia: FasciaDebito;
+		da_scadere: number;
+		metodo: string | null;
+		errore: string | null;
+		abbonamento: string | null;
+		gruppo: string | null;
+		iscritto: boolean;
+		ultimo_accesso: string | null;
+	}[];
+};

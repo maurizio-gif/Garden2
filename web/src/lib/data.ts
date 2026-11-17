@@ -22,6 +22,8 @@ import {
 import {
 	accessiDashboardDemo,
 	accessiMensileDemo,
+	certificatiDemo,
+	debitoriDemo,
 	contattiDemo,
 	personaDemo,
 	analisiIncassiDemo,
@@ -31,6 +33,8 @@ import {
 	opzioniIncassiDemo,
 	scadenzeDemo,
 } from "./demo-direzionale";
+import type { FiltriCertificati } from "./certificati";
+import type { FiltriDebitori } from "./debitori";
 import { filtriContattiPerRpc, type FiltriContatti } from "./contatti";
 import {
 	filtriIncassiPerRpc,
@@ -50,7 +54,9 @@ import type {
 	Vista,
 	AccessiMensile,
 	AnalisiIncassi,
+	Certificati,
 	DashboardAccessi,
+	Debitori,
 	Direzionale,
 	ElencoContatti,
 	SchedaPersona,
@@ -449,4 +455,33 @@ export async function leggiPersona(id: string): Promise<Letto<SchedaPersona | nu
 	const adesso = Date.now();
 	if (!configurazione()) return { dati: personaDemo(id), modo: "demo", adesso };
 	return { dati: await rpc<SchedaPersona | null>("dashboard_persona", { p_id: id }), modo: "reale", adesso };
+}
+
+// ── Certificati medici (supabase/migrations/20261117110000_dashboard_certificati.sql)
+
+export async function leggiCertificati(f: FiltriCertificati, tutte = false): Promise<Letto<Certificati>> {
+	await connection();
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: certificatiDemo(), modo: "demo", adesso };
+	const dati = await rpc<Certificati>("dashboard_certificati", {
+		p_filtri: { fascia: f.fascia, gruppi: f.gruppi, q: f.q },
+		p_limite: tutte ? 20_000 : RIGHE_PER_PAGINA,
+		p_salta: tutte ? 0 : (f.pagina - 1) * RIGHE_PER_PAGINA,
+	});
+	return { dati, modo: "reale", adesso };
+}
+
+// ── Debitori (supabase/migrations/20261117120000_dashboard_debitori.sql)
+
+export async function leggiDebitori(f: FiltriDebitori, tutte = false): Promise<Letto<Debitori>> {
+	await connection();
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: debitoriDemo(), modo: "demo", adesso };
+	const dati = await rpc<Debitori>("dashboard_debitori", {
+		p_filtri: { fascia: f.fascia, gruppi: f.gruppi, q: f.q, iscritti: f.soloIscritti, min: f.min },
+		p_limite: tutte ? 20_000 : RIGHE_PER_PAGINA,
+		p_salta: tutte ? 0 : (f.pagina - 1) * RIGHE_PER_PAGINA,
+		p_ordine: f.ordine,
+	});
+	return { dati, modo: "reale", adesso };
 }

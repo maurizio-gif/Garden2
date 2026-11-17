@@ -3,6 +3,8 @@ import { isTempoIncassi, type RaggruppaIncassi } from "./incassi";
 import type {
 	AccessiMensile,
 	AnalisiIncassi,
+	Certificati,
+	Debitori,
 	DashboardAccessi,
 	ElencoContatti,
 	SchedaPersona,
@@ -355,5 +357,97 @@ export function personaDemo(id: string): SchedaPersona {
 		pratiche: [{ creata: "2026-08-20T10:00:00Z", descrizione: "Rinnovo", stato: "Chiusa vinta", cambio_stato: "2026-08-28T10:00:00Z", chiusa: "2026-08-28T10:00:00Z", valore: 690 }],
 		memo: [],
 		email: [],
+	};
+}
+
+export function certificatiDemo(): Certificati {
+	const oggi = new Date().toISOString().slice(0, 10);
+	const fasce = { mai: 689, scaduto_oltre: 100, scaduto_365: 91, scaduto_180: 68, scaduto_90: 184, scaduto_30: 381, in_scadenza: 541, valido: 3553 } as const;
+	return {
+		oggi,
+		aggiornato_al: new Date().toISOString(),
+		attivi: Object.values(fasce).reduce((a, b) => a + b, 0),
+		senza_data_nascita: 39,
+		fasce,
+		gruppi: GRUPPI.flatMap((gruppo, i) =>
+			(Object.entries(fasce) as [keyof typeof fasce, number][]).map(([fascia, n]) => ({ gruppo, fascia, n: Math.round(n * PESO[i]) })),
+		),
+		tipi: [
+			{ tipo: "Certificato medico annuale", n: 3824 },
+			{ tipo: "Nessuno", n: 689 },
+			{ tipo: "Autocertificazione", n: 449 },
+		],
+		totale: NOMI.length,
+		righe: NOMI.map(([nome, cognome, abbonamento, gruppo], i) => ({
+			persona_id: `00000000-0000-4000-8000-0000000000${String(i + 10).padStart(2, "0")}`,
+			nome,
+			cognome,
+			cellulare: "333 000 0000",
+			email: null,
+			eta: 20 + i * 7,
+			abbonamento,
+			gruppo,
+			fine_abbonamento: "2027-06-30",
+			scadenza: i === 0 ? null : new Date(Date.now() + (i * 20 - 50) * 86_400_000).toISOString().slice(0, 10),
+			tipo: i === 0 ? null : "Certificato medico annuale",
+			giorni_scaduto: i === 0 ? null : 50 - i * 20,
+			fascia: (["mai", "scaduto_90", "scaduto_30", "in_scadenza", "in_scadenza", "valido"] as const)[i],
+			respinti_30g: i === 1 ? 3 : 0,
+			ultimo_accesso: oggi,
+		})),
+	};
+}
+
+export function debitoriDemo(): Debitori {
+	const oggi = new Date().toISOString().slice(0, 10);
+	return {
+		oggi,
+		aggiornato_al: new Date().toISOString(),
+		fasce: {
+			g30: { rate: 236, importo: 44_556, persone: 198 },
+			g90: { rate: 156, importo: 23_219, persone: 123 },
+			g180: { rate: 70, importo: 8_609, persone: 55 },
+			g365: { rate: 118, importo: 11_452, persone: 96 },
+			oltre: { rate: 3127, importo: 388_241, persone: 1564 },
+			in_scadenza: { rate: 672, importo: 139_159, persone: 620 },
+		},
+		fasce_persone: {
+			g30: { persone: 187, importo: 42_353, iscritti: 184 },
+			g90: { persone: 116, importo: 23_576, iscritti: 80 },
+			g180: { persone: 54, importo: 9_788, iscritti: 24 },
+			g365: { persone: 93, importo: 10_852, iscritti: 23 },
+			oltre: { persone: 1564, importo: 389_469, iscritti: 4 },
+		},
+		totale_scaduto: 476_077,
+		debitori: 2014,
+		debitori_iscritti: 315,
+		scaduto_iscritti: 70_000,
+		per_gruppo: GRUPPI.map((gruppo, i) => ({ gruppo, importo: Math.round(476_077 * PESO[i]), rate: Math.round(3700 * PESO[i]) })),
+		per_metodo: [
+			{ metodo: "RID", importo: 300_000, rate: 2400 },
+			{ metodo: "Non indicato", importo: 120_000, rate: 900 },
+			{ metodo: "Carta di credito", importo: 56_077, rate: 400 },
+		],
+		totale: NOMI.length,
+		totale_importo: 2_400,
+		righe: NOMI.map(([nome, cognome, abbonamento, gruppo, totale], i) => ({
+			persona_id: `00000000-0000-4000-8000-0000000000${String(i + 10).padStart(2, "0")}`,
+			nome,
+			cognome,
+			cellulare: "333 000 0000",
+			email: null,
+			scaduto: totale,
+			rate_scadute: 1 + (i % 3),
+			piu_vecchia: new Date(Date.now() - (20 + i * 40) * 86_400_000).toISOString().slice(0, 10),
+			giorni: 20 + i * 40,
+			fascia: (["g30", "g90", "g90", "g180", "g365", "oltre"] as const)[i],
+			da_scadere: i % 2 ? 70 : 0,
+			metodo: "RID",
+			errore: i === 0 ? "Insoluto" : null,
+			abbonamento,
+			gruppo,
+			iscritto: i < 4,
+			ultimo_accesso: oggi,
+		})),
 	};
 }

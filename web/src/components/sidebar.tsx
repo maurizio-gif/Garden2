@@ -11,8 +11,10 @@ const VOCI = [
 	{ href: "/", nome: "Panoramica", icona: IconaPanoramica },
 	{ href: "/abbonamenti", nome: "Abbonamenti", icona: IconaAbbonamenti },
 	{ href: "/scadenze", nome: "Scadenze", icona: IconaScadenze },
+	{ href: "/certificati", nome: "Certificati", icona: IconaCertificati },
 	{ href: "/contatti", nome: "Contatti", icona: IconaContatti },
 	{ href: "/finanza", nome: "Finanza", icona: IconaFinanza },
+	{ href: "/debitori", nome: "Debitori", icona: IconaDebitori },
 	{ href: "/analisi", nome: "Analisi", icona: IconaAnalisi },
 	{ href: "/accessi", nome: "Accessi", icona: IconaAccessi },
 ] as const;
@@ -113,6 +115,25 @@ function IconaAbbonamenti({ className }: { className?: string }) {
 		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
 			<path d="M3.5 8.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1.6a1.9 1.9 0 0 0 0 3.8v1.6a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-1.6a1.9 1.9 0 0 0 0-3.8Z" />
 			<path d="M14.5 6.8v10.4" strokeDasharray="1.6 2.2" />
+		</svg>
+	);
+}
+
+function IconaCertificati({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
+			<path d="M7 3.5h7.5L18.5 7.5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
+			<path d="M14 3.5v4h4.5M12 10.5v6M9 13.5h6" />
+		</svg>
+	);
+}
+
+function IconaDebitori({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...traccia}>
+			<rect x="3" y="6" width="18" height="12" rx="2.5" />
+			<path d="M3 10h18M7 14.5h4" />
+			<path d="M16.5 13.2v2.6M16.5 17.6v.01" />
 		</svg>
 	);
 }

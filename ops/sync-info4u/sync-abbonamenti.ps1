@@ -1470,12 +1470,13 @@ $extraRiscritturaOgniOre = if ($config.ExtraRiscritturaOgniOre) { [double]$confi
 # Supabase). Tiene il task notturno lontano dall'ora dopo.
 $extraMaxMinuti = if ($config.ExtraMaxMinuti) { [double]$config.ExtraMaxMinuti } else { 50 }
 # Nel giro da 5 minuti, di default, dei dati aggiuntivi si fanno solo quelli
-# veloci e che servono subito: le persone senza acquisti e i passaggi ai
+# veloci e che servono subito: le persone senza acquisti, i passaggi ai
 # tornelli di oggi (accessi_corrente, incrementale: pochi millisecondi se non
-# c'e' niente di nuovo). Il resto va nel task con -Extra. Questi due girano
+# c'e' niente di nuovo) e i certificati medici (pochi al giorno; il refresh
+# delle ultime settimane gira ogni ExtraRefreshOgniOre ore). Il resto va nel task con -Extra. Questi due girano
 # anche con ExtraAttivo = false, che spegne solo la parte pesante. Per tornare
 # al comportamento di prima (tutto nello stesso giro): ExtraNelGiro = true.
-$extraVeloci = @("persone_senza_acquisti", "accessi_corrente")
+$extraVeloci = @("persone_senza_acquisti", "accessi_corrente", "certificati")
 $extraNelGiro = if ($null -ne $config.ExtraNelGiro) { [bool]$config.ExtraNelGiro } else { $false }
 
 # Le colonne datetime di SQL Server arrivano a Supabase come istanti (timestamptz);
