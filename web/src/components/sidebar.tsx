@@ -42,6 +42,8 @@ function MenuConPercorso() {
 }
 
 function Menu({ pathname }: { pathname: string | null }) {
+	// Sulla schermata d'accesso il menu non serve (e precaricherebbe pagine chiuse).
+	if (pathname === "/accesso") return null;
 	return (
 		<aside
 			className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm
