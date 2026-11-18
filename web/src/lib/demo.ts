@@ -6,7 +6,7 @@ import type {
 	ConfrontoAnni,
 	ElencoVendite,
 	Finanza,
-	Riscontri,
+	Risconti,
 	Home,
 	Opzioni,
 	Vendita,
@@ -349,8 +349,8 @@ export function finanzaDemo(adesso: Date): Finanza {
 	};
 }
 
-/** Riscontri passivi finti: alti in autunno (annuali venduti a settembre), bassi in estate. */
-export function riscontriDemo(adesso: Date): Riscontri {
+/** Risconti passivi finti: alti in autunno (annuali venduti a settembre), bassi in estate. */
+export function riscontiDemo(adesso: Date): Risconti {
 	const oggi = adesso.toISOString().slice(0, 10);
 	const gruppi: [string, number][] = [
 		["Nuoto", 0.4],
@@ -362,17 +362,21 @@ export function riscontriDemo(adesso: Date): Riscontri {
 	];
 	const stagione = [0.9, 0.84, 0.8, 0.8, 0.78, 0.7, 0.62, 0.58, 0.98, 1.08, 1.04, 0.96];
 	const valore = (d: Date, k: number) => 1_750_000 * stagione[d.getUTCMonth()] * (1 - k * 0.0035);
-	const righe: Riscontri["righe"] = [];
-	const aggiungi = (giorno: string, tipo: "mese" | "oggi" | "anno_fa", tot: number) => {
-		righe.push({ giorno, tipo, gruppo: null, riscontro: Math.round(tot), non_iniziati: Math.round(tot * 0.04), abbonamenti: Math.round(tot / 155) });
+	const righe: Risconti["righe"] = [];
+	const aggiungi = (giorno: string, tipo: Risconti["righe"][number]["tipo"], tot: number) => {
+		righe.push({ giorno, tipo, gruppo: null, risconto: Math.round(tot), non_iniziati: Math.round(tot * 0.04), abbonamenti: Math.round(tot / 155) });
 		for (const [g, q] of gruppi)
-			righe.push({ giorno, tipo, gruppo: g, riscontro: Math.round(tot * q), non_iniziati: Math.round(tot * q * 0.04), abbonamenti: Math.round((tot * q) / 155) });
+			righe.push({ giorno, tipo, gruppo: g, risconto: Math.round(tot * q), non_iniziati: Math.round(tot * q * 0.04), abbonamenti: Math.round((tot * q) / 155) });
 	};
-	for (let k = 36; k >= 0; k--) {
-		const fine = new Date(Date.UTC(adesso.getUTCFullYear(), adesso.getUTCMonth() - k, 0));
+	for (let k = 37; k >= 1; k--) {
+		const fine = new Date(Date.UTC(adesso.getUTCFullYear(), adesso.getUTCMonth() - k + 1, 0));
 		aggiungi(fine.toISOString().slice(0, 10), "mese", valore(fine, k));
 	}
-	const annoFa = new Date(Date.UTC(adesso.getUTCFullYear() - 1, adesso.getUTCMonth(), adesso.getUTCDate()));
+	// 31 dicembre: la Covid nel 2020-2021, l'anno in corso è la stima con il venduto finora
+	const anno = adesso.getUTCFullYear();
+	const storia: Record<number, number> = { 2014: 0.27, 2015: 0.92, 2016: 1, 2017: 1.02, 2018: 1.08, 2019: 1, 2020: 0.54, 2021: 0.68, 2022: 0.97, 2023: 0.92, 2024: 0.98, 2025: 0.97 };
+	for (let a = 2014; a <= anno; a++) aggiungi(`${a}-12-31`, "fine_anno", 1_630_000 * (a === anno ? 0.9 : (storia[a] ?? 1)));
+	const annoFa = new Date(Date.UTC(anno - 1, adesso.getUTCMonth(), adesso.getUTCDate()));
 	aggiungi(annoFa.toISOString().slice(0, 10), "anno_fa", valore(annoFa, 12) * 0.93);
 	aggiungi(oggi, "oggi", valore(adesso, 0));
 	return { oggi, righe };
