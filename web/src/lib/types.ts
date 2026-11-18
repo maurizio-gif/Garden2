@@ -471,3 +471,22 @@ export type Debitori = {
 		ultimo_accesso: string | null;
 	}[];
 };
+
+// ── Riscontri passivi (supabase/migrations/20261118090000_dashboard_riscontri.sql)
+
+/** Una data di chiusura: fine mese, oggi o lo stesso giorno di un anno fa. `gruppo` null = totale. */
+export type RigaRiscontro = {
+	giorno: string;
+	tipo: "mese" | "oggi" | "anno_fa";
+	gruppo: string | null;
+	/** Parte degli abbonamenti venduti che riguarda giorni dopo `giorno`. */
+	riscontro: number;
+	/** Di cui abbonamenti venduti che non sono ancora iniziati (contano per intero). */
+	non_iniziati: number;
+	abbonamenti: number;
+};
+
+export type Riscontri = {
+	oggi: string;
+	righe: RigaRiscontro[];
+};
