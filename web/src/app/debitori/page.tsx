@@ -211,7 +211,7 @@ async function Contenuto({ searchParams }: { searchParams: Promise<Cerca> }) {
 						<button type="submit" className="rounded-xl bg-accent px-4 py-1.5 font-medium text-white hover:bg-accent-strong">
 							Cerca
 						</button>
-						<span className="ml-auto flex items-center gap-2">
+						<span className="ml-auto flex flex-wrap items-center gap-2">
 							<span className="text-xs text-ink-3">Ordina per</span>
 							{(
 								[
