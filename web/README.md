@@ -29,7 +29,8 @@ I dati sono di persone. Per questo:
 
 - la chiave `service_role` sta solo sul server (`src/lib/data.ts` è `server-only`);
 - se `DASHBOARD_PASSWORD` è impostata, ogni pagina chiede la password
-  (`src/proxy.ts`, finestra del browser);
+  (`src/proxy.ts`, pagina `/accesso`); dopo l'accesso un cookie la ricorda per
+  400 giorni su quel dispositivo, anche nell'app installata sul telefono;
 - **in produzione, con la chiave Supabase ma senza `DASHBOARD_PASSWORD`, il
   pannello non serve dati veri.**
 
