@@ -6,7 +6,7 @@
  * In cache vanno solo i file statici (JS/CSS con hash, icone), che non
  * contengono dati e rendono l'apertura dell'app più veloce.
  */
-const VERSIONE = "garden-v1";
+const VERSIONE = "garden-v2";
 const DI_BASE = ["/offline.html", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

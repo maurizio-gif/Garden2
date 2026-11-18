@@ -96,7 +96,7 @@ export function Pwa() {
 					className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-lift md:hidden"
 				>
 					{/* eslint-disable-next-line @next/next/no-img-element -- icona statica minuscola */}
-					<img src="/icon-192.png" alt="" className="size-11 shrink-0 rounded-xl" />
+					<img src="/icon-192.png" alt="" className="size-11 shrink-0 rounded-xl border border-line" />
 					<div className="min-w-0 flex-1 text-sm">
 						<p className="font-semibold text-ink">Installa Garden</p>
 						{modo === "ios" ? (
