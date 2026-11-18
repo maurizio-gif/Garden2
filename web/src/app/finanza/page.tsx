@@ -15,7 +15,7 @@ import { leggiFinanza } from "@/lib/data";
 import { dataBreve, euro, intero, meseCorto, meseLungo } from "@/lib/format";
 import type { PeriodoFin } from "@/lib/types";
 import { NomePersona } from "@/components/nome-persona";
-import { RiscontriPassivi } from "./riscontri";
+import { RiscontiPassivi } from "./risconti";
 
 export const metadata: Metadata = { title: "Finanza" };
 
@@ -25,7 +25,7 @@ export default function Pagina() {
 			<div className="mb-4">
 				<Titolo>Finanza</Titolo>
 				<p className="mt-1 max-w-3xl text-sm text-ink-3">
-					Venduto, incassato, riscontri passivi e crediti verso i clienti, con il mese e l&apos;anno in corso messi accanto agli stessi giorni degli
+					Venduto, incassato, risconti passivi e crediti verso i clienti, con il mese e l&apos;anno in corso messi accanto agli stessi giorni degli
 					anni scorsi.
 				</p>
 			</div>
@@ -341,7 +341,7 @@ async function Contenuto() {
 			</Card>
 
 			<Suspense fallback={<ScheletroLista />}>
-				<RiscontriPassivi />
+				<RiscontiPassivi />
 			</Suspense>
 
 			<Card

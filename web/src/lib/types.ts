@@ -472,21 +472,21 @@ export type Debitori = {
 	}[];
 };
 
-// ── Riscontri passivi (supabase/migrations/20261118090000_dashboard_riscontri.sql)
+// ── Risconti passivi (supabase/migrations/20261118100000_dashboard_risconti.sql)
 
-/** Una data di chiusura: fine mese, oggi o lo stesso giorno di un anno fa. `gruppo` null = totale. */
-export type RigaRiscontro = {
+/** Una data di chiusura: fine mese, 31 dicembre, oggi o lo stesso giorno di un anno fa. `gruppo` null = totale. */
+export type RigaRisconto = {
 	giorno: string;
-	tipo: "mese" | "oggi" | "anno_fa";
+	tipo: "mese" | "fine_anno" | "oggi" | "anno_fa";
 	gruppo: string | null;
 	/** Parte degli abbonamenti venduti che riguarda giorni dopo `giorno`. */
-	riscontro: number;
+	risconto: number;
 	/** Di cui abbonamenti venduti che non sono ancora iniziati (contano per intero). */
 	non_iniziati: number;
 	abbonamenti: number;
 };
 
-export type Riscontri = {
+export type Risconti = {
 	oggi: string;
-	righe: RigaRiscontro[];
+	righe: RigaRisconto[];
 };

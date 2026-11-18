@@ -17,7 +17,7 @@ import {
 	elencoVenditeDemo,
 	finanzaDemo,
 	homeDemo,
-	riscontriDemo,
+	riscontiDemo,
 	opzioniDemo,
 } from "./demo";
 import {
@@ -50,7 +50,7 @@ import type {
 	ConfrontoAnni,
 	ElencoVendite,
 	Finanza,
-	Riscontri,
+	Risconti,
 	Home,
 	Opzioni,
 	Vista,
@@ -294,13 +294,13 @@ export async function leggiFinanza(): Promise<Letto<Finanza>> {
 	return { dati: await rpc<Finanza>("dashboard_finanza", { p_anni: 3 }), modo: "reale", adesso };
 }
 
-/** Riscontri passivi a ogni fine mese (36 mesi), oggi e un anno fa: ~1 secondo di calcolo. */
-export async function leggiRiscontri(): Promise<Letto<Riscontri>> {
+/** Risconti passivi a ogni fine mese (37 mesi), a ogni 31 dicembre, oggi e un anno fa: ~2 secondi di calcolo. */
+export async function leggiRisconti(): Promise<Letto<Risconti>> {
 	"use cache";
 	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
 	const adesso = Date.now();
-	if (!configurazione()) return { dati: riscontriDemo(new Date(adesso)), modo: "demo", adesso };
-	return { dati: await rpc<Riscontri>("dashboard_riscontri"), modo: "reale", adesso };
+	if (!configurazione()) return { dati: riscontiDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<Risconti>("dashboard_risconti"), modo: "reale", adesso };
 }
 
 // ── Direzionale, scadenze e rinnovi, incassi
