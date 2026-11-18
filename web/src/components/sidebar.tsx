@@ -47,7 +47,7 @@ function Menu({ pathname }: { pathname: string | null }) {
 			className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm
 				md:sticky md:top-0 md:h-dvh md:w-64 md:shrink-0 md:border-r md:border-t-0 md:bg-surface md:backdrop-blur-none"
 		>
-			<div className="flex h-full flex-col px-3 py-2 md:px-4 md:py-6">
+			<div className="flex h-full flex-col px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 md:px-4 md:py-6">
 				<Link href="/" aria-label="Garden Sporting Center, panoramica" className="mb-8 hidden px-1 md:block">
 					<Logo className="h-auto w-full" />
 				</Link>

@@ -51,6 +51,10 @@ function passwordGiusta(codificato: string, attesa: string) {
 }
 
 export const config = {
-	// Tutto tranne i file statici di Next.
-	matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+	// Tutto tranne i file statici di Next e quelli della PWA (manifest, service
+	// worker, icone, pagina offline): non hanno dati e il telefono li scarica
+	// senza password.
+	matcher: [
+		"/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|icon-|apple-icon).*)",
+	],
 };
