@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d7a4f">
+<title>Senza connessione · Garden</title>
+<style>
+	:root { color-scheme: light dark; --bg: #f6f5f1; --ink: #16181a; --ink-2: #5b605c; --accent: #1d7a4f; }
+	@media (prefers-color-scheme: dark) { :root { --bg: #0f1311; --ink: #eceeea; --ink-2: #b5bab4; --accent: #4cc38a; } }
+	body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+		font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px; box-sizing: border-box; text-align: center; }
+	img { width: 72px; height: 72px; border-radius: 18px; }
+	h1 { font-size: 20px; margin: 20px 0 6px; }
+	p { margin: 0 0 24px; color: var(--ink-2); max-width: 28ch; }
+	button { font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 12px; padding: 12px 22px; }
+</style>
+</head>
+<body>
+<main>
+	<img src="/icon-192.png" alt="">
+	<h1>Sei offline</h1>
+	<p>Il pannello mostra dati aggiornati: serve la connessione per aprirlo.</p>
+	<button type="button" onclick="location.reload()">Riprova</button>
+</main>
+<script>addEventListener("online", function () { location.reload(); });</script>
+</body>
+</html>
