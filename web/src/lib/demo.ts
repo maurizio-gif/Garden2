@@ -6,6 +6,7 @@ import type {
 	ConfrontoAnni,
 	ElencoVendite,
 	Finanza,
+	Riscontri,
 	Home,
 	Opzioni,
 	Vendita,
@@ -346,4 +347,33 @@ export function finanzaDemo(adesso: Date): Finanza {
 			})),
 		},
 	};
+}
+
+/** Riscontri passivi finti: alti in autunno (annuali venduti a settembre), bassi in estate. */
+export function riscontriDemo(adesso: Date): Riscontri {
+	const oggi = adesso.toISOString().slice(0, 10);
+	const gruppi: [string, number][] = [
+		["Nuoto", 0.4],
+		["Fitness e wellness", 0.28],
+		["Corsi", 0.12],
+		["Personal training", 0.08],
+		["Quote e tessere", 0.07],
+		["Junior e camp", 0.05],
+	];
+	const stagione = [0.9, 0.84, 0.8, 0.8, 0.78, 0.7, 0.62, 0.58, 0.98, 1.08, 1.04, 0.96];
+	const valore = (d: Date, k: number) => 1_750_000 * stagione[d.getUTCMonth()] * (1 - k * 0.0035);
+	const righe: Riscontri["righe"] = [];
+	const aggiungi = (giorno: string, tipo: "mese" | "oggi" | "anno_fa", tot: number) => {
+		righe.push({ giorno, tipo, gruppo: null, riscontro: Math.round(tot), non_iniziati: Math.round(tot * 0.04), abbonamenti: Math.round(tot / 155) });
+		for (const [g, q] of gruppi)
+			righe.push({ giorno, tipo, gruppo: g, riscontro: Math.round(tot * q), non_iniziati: Math.round(tot * q * 0.04), abbonamenti: Math.round((tot * q) / 155) });
+	};
+	for (let k = 36; k >= 0; k--) {
+		const fine = new Date(Date.UTC(adesso.getUTCFullYear(), adesso.getUTCMonth() - k, 0));
+		aggiungi(fine.toISOString().slice(0, 10), "mese", valore(fine, k));
+	}
+	const annoFa = new Date(Date.UTC(adesso.getUTCFullYear() - 1, adesso.getUTCMonth(), adesso.getUTCDate()));
+	aggiungi(annoFa.toISOString().slice(0, 10), "anno_fa", valore(annoFa, 12) * 0.93);
+	aggiungi(oggi, "oggi", valore(adesso, 0));
+	return { oggi, righe };
 }

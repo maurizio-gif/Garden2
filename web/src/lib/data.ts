@@ -17,6 +17,7 @@ import {
 	elencoVenditeDemo,
 	finanzaDemo,
 	homeDemo,
+	riscontriDemo,
 	opzioniDemo,
 } from "./demo";
 import {
@@ -49,6 +50,7 @@ import type {
 	ConfrontoAnni,
 	ElencoVendite,
 	Finanza,
+	Riscontri,
 	Home,
 	Opzioni,
 	Vista,
@@ -290,6 +292,15 @@ export async function leggiFinanza(): Promise<Letto<Finanza>> {
 	const adesso = Date.now();
 	if (!configurazione()) return { dati: finanzaDemo(new Date(adesso)), modo: "demo", adesso };
 	return { dati: await rpc<Finanza>("dashboard_finanza", { p_anni: 3 }), modo: "reale", adesso };
+}
+
+/** Riscontri passivi a ogni fine mese (36 mesi), oggi e un anno fa: ~1 secondo di calcolo. */
+export async function leggiRiscontri(): Promise<Letto<Riscontri>> {
+	"use cache";
+	cacheLife({ stale: 30, revalidate: 300, expire: 3600 });
+	const adesso = Date.now();
+	if (!configurazione()) return { dati: riscontriDemo(new Date(adesso)), modo: "demo", adesso };
+	return { dati: await rpc<Riscontri>("dashboard_riscontri"), modo: "reale", adesso };
 }
 
 // ── Direzionale, scadenze e rinnovi, incassi
