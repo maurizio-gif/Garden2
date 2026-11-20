@@ -75,7 +75,7 @@ export function FiltriAnalisi({
 		f.operatori.length +
 		(f.q ? 1 : 0) +
 		(f.min || f.max ? 1 : 0) +
-		(f.conQuote ? 1 : 0);
+		(f.conQuote ? 0 : 1);
 
 	function scegliPreset(v: string) {
 		if (v === "") return vai({ ...f, preset: null });
@@ -313,7 +313,7 @@ export function FiltriAnalisi({
 				<div className="flex flex-wrap items-center gap-3 text-sm">
 					<button
 						type="button"
-						onClick={() => vai({ ...iniziali, preset: "anno", ...periodoDaPreset("anno", oggi), campo: "vendita", raggruppa: "mese", metrica: "fatturato", confronto: "anno", gruppi: [], categorie: [], operatori: [], q: "", min: "", max: "", conQuote: false, pagina: 1, ordine: "data" })}
+						onClick={() => vai({ ...iniziali, preset: "anno", ...periodoDaPreset("anno", oggi), campo: "vendita", raggruppa: "mese", metrica: "fatturato", confronto: "anno", gruppi: [], categorie: [], operatori: [], q: "", min: "", max: "", conQuote: true, pagina: 1, ordine: "data" })}
 						className="font-medium text-ink-2 underline-offset-4 hover:text-ink hover:underline"
 					>
 						Azzera i filtri{attivi > 0 ? ` (${attivi})` : ""}
