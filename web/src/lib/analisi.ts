@@ -197,7 +197,7 @@ export function leggiFiltri(cerca: Cerca, oggi: string): Filtri {
 		q: (primo(cerca.q) ?? "").trim().slice(0, 80),
 		min: numero(primo(cerca.min)),
 		max: numero(primo(cerca.max)),
-		conQuote: primo(cerca.quote) === "1",
+		conQuote: primo(cerca.quote) !== "0",
 		pagina: Number.isFinite(pagina) && pagina > 0 ? Math.min(pagina, 5000) : 1,
 		ordine: primo(cerca.ordine) === "importo" ? "importo" : "data",
 	};
@@ -221,7 +221,7 @@ export function filtriInQuery(f: Filtri, opzioni: { senzaPagina?: boolean } = {}
 	if (f.q) p.set("q", f.q);
 	if (f.min) p.set("min", f.min);
 	if (f.max) p.set("max", f.max);
-	if (f.conQuote) p.set("quote", "1");
+	if (!f.conQuote) p.set("quote", "0");
 	if (f.ordine !== "data") p.set("ordine", f.ordine);
 	if (!opzioni.senzaPagina && f.pagina > 1) p.set("pagina", String(f.pagina));
 	return p.toString();
